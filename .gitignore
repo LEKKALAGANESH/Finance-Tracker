@@ -49,3 +49,29 @@ htmlcov/
 
 
 .claude
+
+# Additional common ignores for Python/Node/Next.js and local dev
+# Python caches and packaging
+.mypy_cache/
+pip-wheel-metadata/
+
+# Local caches and build caches
+.cache/
+.parcel-cache/
+
+# Local environment/tooling
+.python-version
+.envrc
+
+# Local database files
+*.sqlite3
+*.sqlite
+*.db
+*-journal
+
+# JetBrains IDE files
+*.iml
+.ropeproject/
+
+# TypeScript build info
+*.tsbuildinfo
