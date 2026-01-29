@@ -1,0 +1,17 @@
+{
+  "name": "FinanceTracker",
+  "short_name": "FinTracker",
+  "description": "Track your expenses, manage budgets, and achieve your financial goals with AI-powered insights.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

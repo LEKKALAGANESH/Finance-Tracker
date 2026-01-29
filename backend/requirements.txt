@@ -1,0 +1,20 @@
+# Core
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Supabase
+supabase>=2.3.0
+
+# AI
+google-genai>=1.0.0
+
+# Utilities
+python-multipart>=0.0.6
+httpx>=0.26.0
+
+# Reports (optional - install separately if issues)
+# pandas>=2.0.0
+# reportlab>=4.0.0
