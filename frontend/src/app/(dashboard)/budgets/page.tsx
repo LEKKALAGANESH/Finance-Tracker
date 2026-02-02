@@ -7,6 +7,7 @@ import styled, { css, keyframes } from "styled-components";
 import { CategoryModal } from "@/components/categories/CategoryModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
+import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/Input";
 import { Loader } from "@/components/ui/Loader";
 import { Modal } from "@/components/ui/Modal";
@@ -141,10 +142,36 @@ const BudgetCard = styled(Card)<{ $index?: number }>`
   opacity: 0;
   animation: ${fadeInUp} 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: ${({ $index }) => 0.3 + ($index || 0) * 0.1}s;
-  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  background: ${({ theme }) => theme.glass.background};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      ${({ theme }) => theme.colors.primary}00 0%,
+      ${({ theme }) => theme.colors.primary} 50%,
+      ${({ theme }) => theme.colors.primary}00 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
   &:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
+    box-shadow: ${({ theme }) => theme.shadows.xl};
+
+    &::before {
+      opacity: 1;
+    }
   }
 `;
 
@@ -198,23 +225,6 @@ const BudgetDetails = styled.div`
 const Actions = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing.xs};
-`;
-
-const IconButton = styled.button`
-  padding: ${({ theme }) => theme.spacing.xs};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  color: ${({ theme }) => theme.colors.textSecondary};
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.surfaceHover};
-    color: ${({ theme }) => theme.colors.text};
-  }
-
-  &.danger:hover {
-    background: ${({ theme }) => theme.colors.errorLight};
-    color: ${({ theme }) => theme.colors.error};
-  }
 `;
 
 const ProgressSection = styled.div`
@@ -485,27 +495,100 @@ const AddCategoryButton = styled.button`
 `;
 
 // Budget Overview Styles
+const gradientMove = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
 const BudgetOverviewCard = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
+  background: ${({ theme }) => theme.glass.background};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.xl};
+  padding: ${({ theme }) => theme.spacing.xl};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(
+      90deg,
+      ${({ theme }) => theme.colors.primary}00 0%,
+      ${({ theme }) => theme.colors.primary} 20%,
+      ${({ theme }) => theme.colors.secondary} 50%,
+      ${({ theme }) => theme.colors.success} 80%,
+      ${({ theme }) => theme.colors.success}00 100%
+    );
+    background-size: 200% 100%;
+    animation: ${gradientMove} 4s ease infinite;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(
+      circle,
+      ${({ theme }) => theme.colors.primary}08 0%,
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+
+  &:hover {
+    box-shadow: ${({ theme }) => theme.shadows.xl};
+    transform: translateY(-2px);
+  }
+`;
+
+const OverviewIconBadge = styled.div`
+  width: 44px;
+  height: 44px;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
-  padding: ${({ theme }) => theme.spacing.lg};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors.primary}25 0%,
+    ${({ theme }) => theme.colors.primary}10 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ theme }) => theme.colors.primary};
+  box-shadow: 0 4px 12px ${({ theme }) => theme.colors.primary}20;
+  transition: all 0.3s ease;
 `;
 
 const OverviewHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  position: relative;
+  z-index: 1;
+`;
+
+const OverviewTitleSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
 
   h3 {
-    font-size: ${({ theme }) => theme.typography.fontSize.lg};
-    font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+    font-size: ${({ theme }) => theme.typography.fontSize.xl};
+    font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
-    display: flex;
-    align-items: center;
-    gap: ${({ theme }) => theme.spacing.sm};
+    margin: 0;
   }
 `;
 
@@ -522,15 +605,31 @@ const OverviewStats = styled.div`
 
 const OverviewStat = styled.div<{ $color?: string }>`
   text-align: center;
-  padding: ${({ theme }) => theme.spacing.md};
-  background: ${({ theme }) => theme.colors.surfaceHover};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.lg};
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors.surfaceHover} 0%,
+    ${({ theme }) => theme.colors.surface} 100%
+  );
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.xl};
+  transition: all 0.3s ease;
+  cursor: default;
+  position: relative;
+  z-index: 1;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${({ theme }) => theme.shadows.md};
+    border-color: ${({ $color }) => $color || 'inherit'}30;
+  }
 
   span:first-child {
     display: block;
     font-size: ${({ theme }) => theme.typography.fontSize.sm};
     color: ${({ theme }) => theme.colors.textSecondary};
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   }
 
   span:last-child {
@@ -538,53 +637,106 @@ const OverviewStat = styled.div<{ $color?: string }>`
     font-size: ${({ theme }) => theme.typography.fontSize.xl};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ $color, theme }) => $color || theme.colors.text};
+    font-feature-settings: 'tnum';
   }
 `;
 
 const OverviewProgressBar = styled.div`
-  height: 24px;
-  background: ${({ theme }) => theme.colors.surfaceHover};
+  height: 28px;
+  background: linear-gradient(
+    180deg,
+    ${({ theme }) => theme.colors.surfaceHover} 0%,
+    ${({ theme }) => theme.colors.surface} 100%
+  );
   border-radius: ${({ theme }) => theme.borderRadius.full};
   overflow: hidden;
   display: flex;
   position: relative;
+  box-shadow: ${({ theme }) => theme.shadows.inset};
+  border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-const OverviewProgressSegment = styled.div<{ $width: number; $color: string }>`
+const progressFillAnimation = keyframes`
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+`;
+
+const OverviewProgressSegment = styled.div<{ $width: number; $color: string; $isRemaining?: boolean }>`
   height: 100%;
   width: ${({ $width }) => Math.min(Math.max($width, 0), 100)}%;
-  background: ${({ $color }) => $color};
-  transition: width 0.5s ease;
+  background: ${({ $color, $isRemaining, theme }) =>
+    $isRemaining
+      ? `linear-gradient(90deg, ${theme.colors.primary}30 0%, ${theme.colors.secondary}25 100%)`
+      : `linear-gradient(90deg, ${$color} 0%, ${$color}dd 100%)`
+  };
+  transform-origin: left;
+  animation: ${progressFillAnimation} 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+
+  &:hover::after {
+    transform: translateX(100%);
+  }
 `;
 
 const OverviewLegend = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: ${({ theme }) => theme.spacing.lg};
-  margin-top: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-top: ${({ theme }) => theme.spacing.lg};
   justify-content: center;
-
-  @media (max-width: 640px) {
-    gap: ${({ theme }) => theme.spacing.md};
-  }
+  position: relative;
+  z-index: 1;
 `;
 
-const LegendItem = styled.div`
+const LegendItem = styled.div<{ $color?: string }>`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surfaceHover};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  transition: all 0.2s ease;
+  cursor: default;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${({ theme }) => theme.shadows.sm};
+    border-color: ${({ $color }) => $color || 'inherit'}40;
+  }
 `;
 
-const LegendColor = styled.div<{ $color: string }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background: ${({ $color }) => $color};
+const LegendColor = styled.div<{ $color: string; $isGradient?: boolean }>`
+  width: 14px;
+  height: 14px;
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  background: ${({ $color, $isGradient, theme }) =>
+    $isGradient
+      ? `linear-gradient(135deg, ${theme.colors.primary}40 0%, ${theme.colors.secondary}30 100%)`
+      : $color
+  };
+  box-shadow: 0 2px 6px ${({ $color }) => $color}40;
+  flex-shrink: 0;
 `;
 
 const LegendText = styled.span`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   color: ${({ theme }) => theme.colors.textSecondary};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
 `;
 
 // ============================================================================
@@ -930,10 +1082,12 @@ export default function BudgetsPage() {
             return (
               <BudgetOverviewCard>
                 <OverviewHeader>
-                  <h3>
-                    <Wallet size={20} />
-                    Monthly Budget Overview
-                  </h3>
+                  <OverviewTitleSection>
+                    <OverviewIconBadge>
+                      <Wallet size={22} />
+                    </OverviewIconBadge>
+                    <h3>Monthly Budget Overview</h3>
+                  </OverviewTitleSection>
                 </OverviewHeader>
 
                 <OverviewStats>
@@ -972,25 +1126,26 @@ export default function BudgetsPage() {
                       />
                       <OverviewProgressSegment
                         $width={remainingPercent}
-                        $color="#d1d5db"
+                        $color=""
+                        $isRemaining
                       />
                     </OverviewProgressBar>
 
                     <OverviewLegend>
-                      <LegendItem>
+                      <LegendItem $color="#ef4444">
                         <LegendColor $color="#ef4444" />
                         <LegendText>
                           Spent ({spentPercent.toFixed(0)}%)
                         </LegendText>
                       </LegendItem>
-                      <LegendItem>
+                      <LegendItem $color="#10b981">
                         <LegendColor $color="#10b981" />
                         <LegendText>
                           Saved ({savedPercent.toFixed(0)}%)
                         </LegendText>
                       </LegendItem>
                       <LegendItem>
-                        <LegendColor $color="#d1d5db" />
+                        <LegendColor $color="" $isGradient />
                         <LegendText>
                           Remaining ({remainingPercent.toFixed(0)}%)
                         </LegendText>
@@ -1041,17 +1196,22 @@ export default function BudgetsPage() {
                       </BudgetInfo>
                       <Actions>
                         <IconButton
+                          variant="primary"
+                          size="sm"
+                          tooltip="Edit budget"
                           onClick={() => openModal(budget)}
                           aria-label="Edit budget"
                         >
-                          <Edit size={18} />
+                          <Edit size={16} />
                         </IconButton>
                         <IconButton
-                          className="danger"
+                          variant="danger"
+                          size="sm"
+                          tooltip="Delete budget"
                           onClick={() => handleDelete(budget.id)}
                           aria-label="Delete budget"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={16} />
                         </IconButton>
                       </Actions>
                     </BudgetHeader>

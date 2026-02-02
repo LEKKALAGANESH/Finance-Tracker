@@ -342,18 +342,26 @@ const ContentGrid = styled.div`
   }
 `;
 
+const gradientShiftBudget = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
 const BudgetOverviewCard = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
+  background: ${({ theme }) => theme.glass.background};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.xl};
-  padding: ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => theme.spacing["2xl"]};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   ${staggeredAnimation(6)}
 
-  /* Subtle gradient overlay */
+  /* Animated gradient top accent */
   &::before {
     content: '';
     position: absolute;
@@ -361,33 +369,71 @@ const BudgetOverviewCard = styled.div`
     left: 0;
     right: 0;
     height: 4px;
-    background: ${({ theme }) => theme.gradients.primary};
-    opacity: 0.8;
+    background: linear-gradient(
+      90deg,
+      ${({ theme }) => theme.colors.primary}00 0%,
+      ${({ theme }) => theme.colors.primary} 20%,
+      ${({ theme }) => theme.colors.secondary} 50%,
+      ${({ theme }) => theme.colors.success} 80%,
+      ${({ theme }) => theme.colors.success}00 100%
+    );
+    background-size: 200% 100%;
+    animation: ${gradientShiftBudget} 4s ease infinite;
   }
 
-  /* Decorative background accent */
+  /* Multiple glow orbs for depth */
   &::after {
     content: '';
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 200px;
-    height: 200px;
+    top: -50px;
+    right: -50px;
+    width: 250px;
+    height: 250px;
     background: radial-gradient(
       circle,
-      ${({ theme }) => theme.colors.primary}05 0%,
-      transparent 70%
+      ${({ theme }) => theme.colors.primary}10 0%,
+      transparent 60%
     );
     pointer-events: none;
+    transition: all 0.5s ease;
   }
 
   &:hover {
-    box-shadow: ${({ theme }) => theme.shadows.lg};
-    transform: translateY(-2px);
+    box-shadow:
+      ${({ theme }) => theme.shadows.xl},
+      0 8px 32px ${({ theme }) => theme.colors.primary}15;
+    transform: translateY(-4px);
+    border-color: ${({ theme }) => theme.colors.primary}30;
+
+    &::after {
+      transform: scale(1.2);
+    }
   }
 
   @media (max-width: 768px) {
-    padding: ${({ theme }) => theme.spacing.lg};
+    padding: ${({ theme }) => theme.spacing.xl};
+  }
+`;
+
+const BudgetIconBadge = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors.primary}25 0%,
+    ${({ theme }) => theme.colors.primary}10 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ theme }) => theme.colors.primary};
+  box-shadow: 0 4px 12px ${({ theme }) => theme.colors.primary}20;
+  transition: all 0.3s ease;
+
+  ${BudgetOverviewCard}:hover & {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 6px 16px ${({ theme }) => theme.colors.primary}30;
   }
 `;
 
@@ -395,21 +441,27 @@ const BudgetHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
   position: relative;
   z-index: 1;
+`;
+
+const BudgetTitleSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
 
   h3 {
-    font-size: ${({ theme }) => theme.typography.fontSize.lg};
-    font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+    font-size: ${({ theme }) => theme.typography.fontSize.xl};
+    font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
-    display: flex;
-    align-items: center;
-    gap: ${({ theme }) => theme.spacing.sm};
+    margin: 0;
+  }
 
-    svg {
-      color: ${({ theme }) => theme.colors.primary};
-    }
+  p {
+    font-size: ${({ theme }) => theme.typography.fontSize.sm};
+    color: ${({ theme }) => theme.colors.textMuted};
+    margin: 0;
   }
 `;
 
@@ -425,13 +477,20 @@ const progressFill = keyframes`
 `;
 
 const BudgetProgressBar = styled.div`
-  height: 28px;
-  background: ${({ theme }) => theme.colors.surfaceHover};
+  height: 32px;
+  background: linear-gradient(
+    180deg,
+    ${({ theme }) => theme.colors.surfaceHover} 0%,
+    ${({ theme }) => theme.colors.surface} 100%
+  );
   border-radius: ${({ theme }) => theme.borderRadius.full};
   overflow: hidden;
   display: flex;
   position: relative;
-  box-shadow: ${({ theme }) => theme.shadows.inset};
+  box-shadow:
+    ${({ theme }) => theme.shadows.inset},
+    0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid ${({ theme }) => theme.colors.border};
 
   /* Subtle inner glow */
   &::after {
@@ -439,7 +498,7 @@ const BudgetProgressBar = styled.div`
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
     pointer-events: none;
   }
 `;
@@ -477,6 +536,52 @@ const BudgetProgressSegment = styled.div<{ $width: number; $color: string; $dela
   }
 `;
 
+const RemainingProgressSegment = styled.div<{ $width: number; $delay?: number }>`
+  height: 100%;
+  width: ${({ $width }) => Math.min(Math.max($width, 0), 100)}%;
+  background: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.primary}30 0%,
+    ${({ theme }) => theme.colors.secondary}25 100%
+  );
+  transform-origin: left;
+  animation: ${progressFill} 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: ${({ $delay }) => $delay || 0}s;
+  position: relative;
+
+  /* Shimmer effect on hover */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.15) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+
+  &:hover::after {
+    transform: translateX(100%);
+  }
+`;
+
+const RemainingColor = styled.div`
+  width: 16px;
+  height: 16px;
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors.primary}40 0%,
+    ${({ theme }) => theme.colors.secondary}30 100%
+  );
+  box-shadow: 0 3px 8px ${({ theme }) => theme.colors.primary}30;
+  flex-shrink: 0;
+`;
+
 const BudgetLegend = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -496,46 +601,69 @@ const BudgetLegend = styled.div`
   }
 `;
 
-const LegendItem = styled.div`
+const LegendItem = styled.div<{ $color?: string }>`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing.sm};
-  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  background: ${({ theme }) => theme.colors.surfaceHover};
-  border-radius: ${({ theme }) => theme.borderRadius.lg};
-  transition: all 0.2s ease;
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors.surfaceHover} 0%,
+    ${({ theme }) => theme.colors.surface} 100%
+  );
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.xl};
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+  flex: 1;
+  min-width: 140px;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: ${({ theme }) => theme.shadows.sm};
+    transform: translateY(-3px);
+    box-shadow:
+      ${({ theme }) => theme.shadows.md},
+      0 4px 16px ${({ $color }) => $color || 'rgba(0,0,0,0.1)'}30;
+    border-color: ${({ $color }) => $color || 'inherit'}40;
+    background: ${({ theme }) => theme.colors.surface};
+  }
+
+  @media (max-width: 480px) {
+    min-width: auto;
+    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   }
 `;
 
 const LegendColor = styled.div<{ $color: string }>`
-  width: 14px;
-  height: 14px;
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
-  background: ${({ $color }) => $color};
-  box-shadow: 0 2px 4px ${({ $color }) => $color}40;
+  width: 16px;
+  height: 16px;
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  background: linear-gradient(
+    135deg,
+    ${({ $color }) => $color} 0%,
+    ${({ $color }) => $color}cc 100%
+  );
+  box-shadow: 0 3px 8px ${({ $color }) => $color}50;
   flex-shrink: 0;
 `;
 
 const LegendText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 
   span:first-child {
     font-size: ${({ theme }) => theme.typography.fontSize.xs};
     color: ${({ theme }) => theme.colors.textMuted};
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.08em;
+    font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   }
 
   span:last-child {
-    font-size: ${({ theme }) => theme.typography.fontSize.sm};
-    font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+    font-size: ${({ theme }) => theme.typography.fontSize.base};
+    font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
+    font-feature-settings: 'tnum';
   }
 `;
 
@@ -945,10 +1073,15 @@ export default function DashboardPage() {
       {/* Budget Overview - shows relationship between Budget, Spent, Saved, Remaining */}
       <BudgetOverviewCard>
         <BudgetHeader>
-          <h3>
-            <Wallet size={20} />
-            Budget Overview
-          </h3>
+          <BudgetTitleSection>
+            <BudgetIconBadge>
+              <Wallet size={22} />
+            </BudgetIconBadge>
+            <div>
+              <h3>Budget Overview</h3>
+              <p>Track your spending against your budget</p>
+            </div>
+          </BudgetTitleSection>
           {stats.monthlyBudget === 0 && (
             <Link href="/budgets">
               <Button variant="outline" size="sm">Set Budget</Button>
@@ -976,33 +1109,37 @@ export default function DashboardPage() {
                   <BudgetProgressBar>
                     <BudgetProgressSegment $width={spentPercent} $color="#ef4444" $delay={0.3} />
                     <BudgetProgressSegment $width={savedPercent} $color="#10b981" $delay={0.5} />
-                    <BudgetProgressSegment $width={remainingPercent} $color="#d1d5db" $delay={0.7} />
+                    <RemainingProgressSegment $width={remainingPercent} $delay={0.7} />
                   </BudgetProgressBar>
 
                   <BudgetLegend>
-                    <LegendItem>
+                    <LegendItem $color="#6366f1">
                       <LegendColor $color="#6366f1" />
                       <LegendText>
                         <span>Budget</span>
                         <span>{formatCurrency(budget)}</span>
                       </LegendText>
                     </LegendItem>
-                    <LegendItem>
+                    <LegendItem $color="#ef4444">
                       <LegendColor $color="#ef4444" />
                       <LegendText>
                         <span>Spent</span>
                         <span>{formatCurrency(spent)} ({spentPercent.toFixed(0)}%)</span>
                       </LegendText>
                     </LegendItem>
-                    <LegendItem>
+                    <LegendItem $color="#10b981">
                       <LegendColor $color="#10b981" />
                       <LegendText>
                         <span>Saved</span>
                         <span>{formatCurrency(saved)} ({savedPercent.toFixed(0)}%)</span>
                       </LegendText>
                     </LegendItem>
-                    <LegendItem>
-                      <LegendColor $color={overBudget ? "#f59e0b" : "#d1d5db"} />
+                    <LegendItem $color={overBudget ? "#f59e0b" : undefined}>
+                      {overBudget ? (
+                        <LegendColor $color="#f59e0b" />
+                      ) : (
+                        <RemainingColor />
+                      )}
                       <LegendText>
                         <span>{overBudget ? "Over Budget" : "Remaining"}</span>
                         <span style={{ color: overBudget ? "#f59e0b" : undefined }}>

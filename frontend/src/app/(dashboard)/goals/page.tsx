@@ -10,6 +10,7 @@ import { useToast } from '@/context/ToastContext';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
@@ -209,26 +210,52 @@ const GoalsGrid = styled.div`
   }
 `;
 
-const GoalCard = styled(Card)<{ $isCompleted: boolean; $index?: number }>`
+const GoalCard = styled(Card)<{ $isCompleted: boolean; $index?: number; $color?: string }>`
   position: relative;
   opacity: 0;
   animation: ${fadeInUp} 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: ${({ $index }) => 0.1 + ($index || 0) * 0.1}s;
-  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  background: ${({ theme }) => theme.glass.background};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: ${({ $color }) => $color || '#6366f1'};
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
   ${({ $isCompleted }) => $isCompleted && css`
     &::after {
       content: '';
       position: absolute;
       inset: 0;
-      background: ${({ theme }) => theme.colors.success}05;
+      background: ${({ theme }) => theme.colors.success}08;
       pointer-events: none;
       border-radius: inherit;
+    }
+
+    &::before {
+      opacity: 1;
+      background: linear-gradient(90deg, ${({ theme }) => theme.colors.success}, #34d399);
     }
   `}
 
   &:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
+    box-shadow: ${({ theme }) => theme.shadows.xl};
+
+    &::before {
+      opacity: 1;
+    }
   }
 `;
 
@@ -298,23 +325,6 @@ const GoalDetails = styled.div`
 const Actions = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing.xs};
-`;
-
-const IconButton = styled.button`
-  padding: ${({ theme }) => theme.spacing.xs};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  color: ${({ theme }) => theme.colors.textSecondary};
-  transition: all 0.15s ease;
-
-  &:hover {
-    background: ${({ theme }) => theme.colors.surfaceHover};
-    color: ${({ theme }) => theme.colors.text};
-  }
-
-  &.danger:hover {
-    background: ${({ theme }) => theme.colors.errorLight};
-    color: ${({ theme }) => theme.colors.error};
-  }
 `;
 
 const AmountSection = styled.div`
@@ -778,7 +788,7 @@ export default function GoalsPage() {
             const isUrgent = daysUntilDeadline <= 30 && daysUntilDeadline > 0;
 
             return (
-              <GoalCard key={goal.id} $isCompleted={isCompleted} $index={index}>
+              <GoalCard key={goal.id} $isCompleted={isCompleted} $index={index} $color={goal.color}>
                 {isCompleted && (
                   <CompletedBadge>
                     <CheckCircle size={12} /> Completed
@@ -794,11 +804,23 @@ export default function GoalsPage() {
                       </GoalDetails>
                     </GoalInfo>
                     <Actions>
-                      <IconButton onClick={() => openModal(goal)} aria-label="Edit goal">
-                        <Edit size={18} />
+                      <IconButton
+                        variant="primary"
+                        size="sm"
+                        tooltip="Edit goal"
+                        onClick={() => openModal(goal)}
+                        aria-label="Edit goal"
+                      >
+                        <Edit size={16} />
                       </IconButton>
-                      <IconButton className="danger" onClick={() => handleDelete(goal.id)} aria-label="Delete goal">
-                        <Trash2 size={18} />
+                      <IconButton
+                        variant="danger"
+                        size="sm"
+                        tooltip="Delete goal"
+                        onClick={() => handleDelete(goal.id)}
+                        aria-label="Delete goal"
+                      >
+                        <Trash2 size={16} />
                       </IconButton>
                     </Actions>
                   </GoalHeader>

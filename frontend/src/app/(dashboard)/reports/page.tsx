@@ -1,8 +1,8 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, TrendingUp, Wallet, Calendar, FileBarChart } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -127,18 +127,42 @@ import {
   YAxis,
 } from "recharts";
 
+const shimmer = keyframes`
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+`;
+
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
 const PageHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.md};
+  animation: ${fadeInUp} 0.5s ease;
 
   h1 {
     font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
-    color: ${({ theme }) => theme.colors.text};
+    background: linear-gradient(
+      135deg,
+      ${({ theme }) => theme.colors.text} 0%,
+      ${({ theme }) => theme.colors.primary} 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 
     @media (max-width: 480px) {
       font-size: ${({ theme }) => theme.typography.fontSize.xl};
@@ -156,6 +180,12 @@ const FilterBar = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   align-items: center;
   flex-wrap: wrap;
+  padding: ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surface};
+  backdrop-filter: blur(10px);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.xl};
+  box-shadow: ${({ theme }) => theme.shadows.sm};
 
   @media (max-width: 640px) {
     width: 100%;

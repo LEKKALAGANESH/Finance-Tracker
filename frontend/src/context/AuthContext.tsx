@@ -109,7 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
     if (!error) {
-      router.push('/dashboard');
+      // Use full page navigation to ensure cookies are properly read by the server
+      window.location.href = '/dashboard';
     }
     return createAuthResult(error);
   };

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect, Suspense, useRef, useCallback } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import styled from "styled-components";
 
@@ -196,7 +196,15 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { signIn, signInWithGoogle, isGoogleAuthAvailable } = useAuth();
   const toast = useToast();
-  const emailInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setFocus,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
   // Handle OAuth callback errors from URL
   useEffect(() => {
@@ -215,17 +223,9 @@ function LoginContent() {
     setGoogleAuthError(null);
     // Small delay to ensure the error is dismissed before focusing
     setTimeout(() => {
-      emailInputRef.current?.focus();
+      setFocus("email");
     }, 100);
-  }, []);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  }, [setFocus]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -296,7 +296,6 @@ function LoginContent() {
           error={errors.email?.message}
           fullWidth
           {...register("email")}
-          ref={emailInputRef}
         />
 
         <Input
