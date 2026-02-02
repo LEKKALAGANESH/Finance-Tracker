@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { Plus, Trash2, Edit, Target, CheckCircle, PiggyBank, Clock } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useToast } from '@/context/ToastContext';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -15,13 +16,90 @@ import { Modal } from '@/components/ui/Modal';
 import { Loader } from '@/components/ui/Loader';
 import { GOAL_ICONS } from '@/lib/constants';
 
+// Animation keyframes
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const staggeredAnimation = (index: number) => css`
+  opacity: 0;
+  animation: ${fadeInUp} 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: ${index * 0.08}s;
+`;
+
+// Page wrapper with background effects
+const PageWrapper = styled.div`
+  position: relative;
+  min-height: 100%;
+
+  &::before {
+    content: '';
+    position: fixed;
+    top: -15%;
+    right: -8%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(
+      circle,
+      ${({ theme }) => theme.colors.success}08 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &::after {
+    content: '';
+    position: fixed;
+    bottom: -10%;
+    left: -5%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(
+      circle,
+      ${({ theme }) => theme.colors.primary}06 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+`;
+
+const PageContent = styled.div`
+  position: relative;
+  z-index: 1;
+`;
+
 const PageHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.md};
+  ${staggeredAnimation(0)}
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      width: 100%;
+    }
+  }
+`;
+
+const PageTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
 
   h1 {
     font-size: ${({ theme }) => theme.typography.fontSize['2xl']};
@@ -32,15 +110,18 @@ const PageHeader = styled.div`
       font-size: ${({ theme }) => theme.typography.fontSize.xl};
     }
   }
+`;
 
-  @media (max-width: 480px) {
-    flex-direction: column;
-    align-items: stretch;
-
-    button {
-      width: 100%;
-    }
-  }
+const PageTitleIcon = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  background: linear-gradient(135deg, ${({ theme }) => theme.colors.success} 0%, ${({ theme }) => theme.colors.primary} 100%);
+  color: white;
+  flex-shrink: 0;
 `;
 
 const GoalsGrid = styled.div`
@@ -53,9 +134,27 @@ const GoalsGrid = styled.div`
   }
 `;
 
-const GoalCard = styled(Card)<{ $isCompleted: boolean }>`
+const GoalCard = styled(Card)<{ $isCompleted: boolean; $index?: number }>`
   position: relative;
-  opacity: ${({ $isCompleted }) => ($isCompleted ? 0.8 : 1)};
+  opacity: 0;
+  animation: ${fadeInUp} 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: ${({ $index }) => 0.1 + ($index || 0) * 0.1}s;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  ${({ $isCompleted }) => $isCompleted && css`
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: ${({ theme }) => theme.colors.success}05;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+  `}
+
+  &:hover {
+    transform: translateY(-4px);
+  }
 `;
 
 const CompletedBadge = styled.div`
@@ -89,12 +188,22 @@ const GoalInfo = styled.div`
 const GoalIcon = styled.div<{ $color: string }>`
   width: 56px;
   height: 56px;
-  border-radius: ${({ theme }) => theme.borderRadius.lg};
-  background: ${({ $color }) => `${$color}15`};
+  border-radius: ${({ theme }) => theme.borderRadius.xl};
+  background: linear-gradient(
+    135deg,
+    ${({ $color }) => `${$color}20`} 0%,
+    ${({ $color }) => `${$color}10`} 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.75rem;
+  box-shadow: 0 4px 12px ${({ $color }) => `${$color}15`};
+  transition: all 0.3s ease;
+
+  ${GoalCard}:hover & {
+    transform: scale(1.1) rotate(5deg);
+  }
 `;
 
 const GoalDetails = styled.div`
@@ -355,6 +464,7 @@ interface Goal {
 
 export default function GoalsPage() {
   const { user } = useAuth();
+  const { formatCurrency } = useCurrency();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -365,10 +475,17 @@ export default function GoalsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [contributionAmount, setContributionAmount] = useState('');
 
+  // Default deadline to 1 year from now
+  const getDefaultDeadline = () => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1);
+    return date.toISOString().split('T')[0];
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     target_amount: '',
-    deadline: '',
+    deadline: getDefaultDeadline(),
     icon: '🎯',
     color: '#6366f1',
   });
@@ -406,7 +523,7 @@ export default function GoalsPage() {
       setFormData({
         name: '',
         target_amount: '',
-        deadline: '',
+        deadline: getDefaultDeadline(),
         icon: '🎯',
         color: '#6366f1',
       });
@@ -421,14 +538,32 @@ export default function GoalsPage() {
   };
 
   const handleSave = async () => {
-    if (!user || !formData.name || !formData.target_amount) return;
+    if (!user) {
+      toast.error('You must be logged in to create a goal');
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      toast.error('Please enter a goal name');
+      return;
+    }
+
+    if (!formData.target_amount || parseFloat(formData.target_amount) <= 0) {
+      toast.error('Please enter a valid target amount');
+      return;
+    }
+
+    if (!formData.deadline) {
+      toast.error('Please select a target date');
+      return;
+    }
 
     setIsSaving(true);
     const supabase = getSupabaseClient();
 
     const goalData = {
       user_id: user.id,
-      name: formData.name,
+      name: formData.name.trim(),
       target_amount: parseFloat(formData.target_amount),
       deadline: formData.deadline,
       icon: formData.icon,
@@ -442,9 +577,12 @@ export default function GoalsPage() {
         .eq('id', editingGoal.id);
 
       if (error) {
-        toast.error('Failed to update goal');
+        console.error('Error updating goal:', error);
+        toast.error(`Failed to update goal: ${error.message}`);
       } else {
         toast.success('Goal updated successfully');
+        setModalOpen(false);
+        fetchGoals();
       }
     } else {
       const { error } = await supabase.from('goals').insert({
@@ -454,27 +592,53 @@ export default function GoalsPage() {
       });
 
       if (error) {
-        toast.error('Failed to create goal');
+        console.error('Error creating goal:', error);
+        toast.error(`Failed to create goal: ${error.message}`);
       } else {
         toast.success('Goal created successfully');
+        setModalOpen(false);
+        fetchGoals();
       }
     }
 
     setIsSaving(false);
-    setModalOpen(false);
-    fetchGoals();
   };
 
   const handleContribute = async () => {
-    if (!selectedGoal || !contributionAmount) return;
+    if (!selectedGoal || !contributionAmount || !user) return;
+
+    const amount = parseFloat(contributionAmount);
+    if (amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
 
     setIsSaving(true);
     const supabase = getSupabaseClient();
 
-    const newAmount = selectedGoal.current_amount + parseFloat(contributionAmount);
+    const newAmount = selectedGoal.current_amount + amount;
     const isCompleted = newAmount >= selectedGoal.target_amount;
 
-    const { error } = await supabase
+    // Insert contribution record first
+    const { error: contributionError } = await supabase
+      .from('goal_contributions')
+      .insert({
+        user_id: user.id,
+        goal_id: selectedGoal.id,
+        amount: amount,
+        note: `Contribution to ${selectedGoal.name}`,
+        date: new Date().toISOString().split('T')[0],
+      });
+
+    if (contributionError) {
+      console.error('Error adding contribution:', contributionError);
+      toast.error(`Failed to add contribution: ${contributionError.message}`);
+      setIsSaving(false);
+      return;
+    }
+
+    // Update goal's current amount
+    const { error: updateError } = await supabase
       .from('goals')
       .update({
         current_amount: newAmount,
@@ -482,19 +646,20 @@ export default function GoalsPage() {
       })
       .eq('id', selectedGoal.id);
 
-    if (error) {
-      toast.error('Failed to add contribution');
+    if (updateError) {
+      console.error('Error updating goal:', updateError);
+      toast.error(`Failed to update goal: ${updateError.message}`);
     } else {
       if (isCompleted) {
         toast.success('Congratulations! Goal completed! 🎉');
       } else {
         toast.success('Contribution added successfully');
       }
+      setContributeModalOpen(false);
+      fetchGoals();
     }
 
     setIsSaving(false);
-    setContributeModalOpen(false);
-    fetchGoals();
   };
 
   const handleDelete = async (id: string) => {
@@ -514,9 +679,13 @@ export default function GoalsPage() {
   }
 
   return (
-    <>
+    <PageWrapper>
+      <PageContent>
       <PageHeader>
-        <h1>Savings Goals</h1>
+        <PageTitle>
+          <PageTitleIcon><Target size={20} /></PageTitleIcon>
+          <h1>Savings Goals</h1>
+        </PageTitle>
         <Button leftIcon={<Plus size={18} />} onClick={() => openModal()}>
           Create Goal
         </Button>
@@ -535,7 +704,7 @@ export default function GoalsPage() {
             </Button>
           </EmptyState>
         ) : (
-          goals.map((goal) => {
+          goals.map((goal, index) => {
             const percentage = (goal.current_amount / goal.target_amount) * 100;
             const isCompleted = goal.status === 'completed';
             const remaining = goal.target_amount - goal.current_amount;
@@ -545,7 +714,7 @@ export default function GoalsPage() {
             const isUrgent = daysUntilDeadline <= 30 && daysUntilDeadline > 0;
 
             return (
-              <GoalCard key={goal.id} $isCompleted={isCompleted}>
+              <GoalCard key={goal.id} $isCompleted={isCompleted} $index={index}>
                 {isCompleted && (
                   <CompletedBadge>
                     <CheckCircle size={12} /> Completed
@@ -561,10 +730,10 @@ export default function GoalsPage() {
                       </GoalDetails>
                     </GoalInfo>
                     <Actions>
-                      <IconButton onClick={() => openModal(goal)}>
+                      <IconButton onClick={() => openModal(goal)} aria-label="Edit goal">
                         <Edit size={18} />
                       </IconButton>
-                      <IconButton className="danger" onClick={() => handleDelete(goal.id)}>
+                      <IconButton className="danger" onClick={() => handleDelete(goal.id)} aria-label="Delete goal">
                         <Trash2 size={18} />
                       </IconButton>
                     </Actions>
@@ -722,6 +891,7 @@ export default function GoalsPage() {
           </ModalActions>
         </ModalForm>
       </Modal>
-    </>
+      </PageContent>
+    </PageWrapper>
   );
 }

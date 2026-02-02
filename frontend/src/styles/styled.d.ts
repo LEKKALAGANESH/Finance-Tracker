@@ -3,11 +3,14 @@ import 'styled-components';
 declare module 'styled-components' {
   export interface DefaultTheme {
     colors: {
+      // Primary colors
       primary: string;
       primaryHover: string;
       primaryLight: string;
+      // Secondary colors
       secondary: string;
       secondaryHover: string;
+      // Status colors
       success: string;
       successLight: string;
       warning: string;
@@ -16,15 +19,18 @@ declare module 'styled-components' {
       errorLight: string;
       info: string;
       infoLight: string;
+      // Neutral colors
       background: string;
       surface: string;
       surfaceHover: string;
       border: string;
       borderDark: string;
+      // Text colors
       text: string;
       textSecondary: string;
       textMuted: string;
       textInverse: string;
+      // Category colors
       categoryFood: string;
       categoryTransport: string;
       categoryShopping: string;
@@ -34,17 +40,47 @@ declare module 'styled-components' {
       categoryEducation: string;
       categoryOther: string;
     };
+    gradients: {
+      primary: string;
+      primaryHover: string;
+      secondary: string;
+      success: string;
+      warning: string;
+      danger: string;
+      info: string;
+      dark: string;
+      light: string;
+      shimmer: string;
+      hero: string;
+      card: string;
+    };
+    glass: {
+      background: string;
+      backgroundStrong: string;
+      blur: string;
+      blurStrong: string;
+      border: string;
+    };
     shadows: {
       sm: string;
       md: string;
       lg: string;
       xl: string;
+      primary: string;
+      primaryLg: string;
+      success: string;
+      error: string;
+      glow: string;
+      glowStrong: string;
+      inset: string;
+      insetLg: string;
     };
     borderRadius: {
       sm: string;
       md: string;
       lg: string;
       xl: string;
+      '2xl': string;
       full: string;
     };
     spacing: {
@@ -87,6 +123,19 @@ declare module 'styled-components' {
       fast: string;
       normal: string;
       slow: string;
+      bounce: string;
+      smooth: string;
+      spring: string;
+    };
+    animations: {
+      fadeIn: string;
+      slideUp: string;
+      slideDown: string;
+      scaleIn: string;
+      pulse: string;
+      shimmer: string;
+      float: string;
+      glow: string;
     };
   }
 }

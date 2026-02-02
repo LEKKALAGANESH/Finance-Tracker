@@ -4,6 +4,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import type { Budget } from '@/types/budget';
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'An unknown error occurred';
+}
+
 interface BudgetWithSpent extends Budget {
   spent: number;
   percentage: number;
@@ -85,8 +91,8 @@ export function useBudgets(): UseBudgetsReturn {
       );
 
       setBudgets(budgetsWithSpent);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch budgets');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to fetch budgets');
     } finally {
       setIsLoading(false);
     }
@@ -108,8 +114,8 @@ export function useBudgets(): UseBudgetsReturn {
         toast.success('Budget created successfully!');
         await fetchBudgets();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to create budget');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to create budget');
         return false;
       }
     },
@@ -133,8 +139,8 @@ export function useBudgets(): UseBudgetsReturn {
         toast.success('Budget updated successfully!');
         await fetchBudgets();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to update budget');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to update budget');
         return false;
       }
     },
@@ -158,8 +164,8 @@ export function useBudgets(): UseBudgetsReturn {
         toast.success('Budget deleted successfully!');
         await fetchBudgets();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to delete budget');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to delete budget');
         return false;
       }
     },

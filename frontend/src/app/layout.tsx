@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import StyledComponentsRegistry from '@/lib/registry';
 import { AuthProvider } from '@/context/AuthContext';
+import { CurrencyProvider } from '@/context/CurrencyContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { OnboardingProvider } from '@/context/OnboardingContext';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -24,9 +26,11 @@ export const metadata: Metadata = {
   },
   manifest: '/manifest.json',
   appleWebApp: {
-    capable: true,
     statusBarStyle: 'default',
     title: 'FinanceTracker',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
 };
 
@@ -40,11 +44,15 @@ export default function RootLayout({
       <body className={inter.className}>
         <StyledComponentsRegistry>
           <AuthProvider>
-            <ThemeProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </ThemeProvider>
+            <CurrencyProvider>
+              <ThemeProvider>
+                <ToastProvider>
+                  <OnboardingProvider>
+                    {children}
+                  </OnboardingProvider>
+                </ToastProvider>
+              </ThemeProvider>
+            </CurrencyProvider>
           </AuthProvider>
         </StyledComponentsRegistry>
       </body>

@@ -466,7 +466,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
         </NotificationButton>
 
         <UserMenuContainer ref={menuRef}>
-          <UserButton onClick={() => setIsMenuOpen(!isMenuOpen)} $isOpen={isMenuOpen}>
+          <UserButton onClick={() => setIsMenuOpen(!isMenuOpen)} $isOpen={isMenuOpen} aria-label="User menu" aria-expanded={isMenuOpen}>
             <Avatar>{userInitial}</Avatar>
             <UserInfo>
               <UserName>{userName}</UserName>

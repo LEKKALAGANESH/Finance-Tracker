@@ -433,7 +433,7 @@ const Title = styled.h2<{ $step: SignOutStep }>`
 `;
 
 const Description = styled.p`
-  font-size: ${({ theme }) => theme.typography.fontSize.md};
+  font-size: ${({ theme }) => theme.typography.fontSize.base};
   color: ${({ theme }) => theme.colors.textSecondary};
   margin: 0 0 ${({ theme }) => theme.spacing.xl};
   line-height: 1.6;
@@ -492,7 +492,7 @@ const UserAvatar = styled.div`
   @media (max-width: 480px) {
     width: 40px;
     height: 40px;
-    font-size: ${({ theme }) => theme.typography.fontSize.md};
+    font-size: ${({ theme }) => theme.typography.fontSize.base};
   }
 `;
 
@@ -508,7 +508,7 @@ const UserDetails = styled.div`
 const UserName = styled.span`
   font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
   color: ${({ theme }) => theme.colors.text};
-  font-size: ${({ theme }) => theme.typography.fontSize.md};
+  font-size: ${({ theme }) => theme.typography.fontSize.base};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

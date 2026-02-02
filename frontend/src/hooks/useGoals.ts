@@ -4,6 +4,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import type { Goal } from '@/types/goal';
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'An unknown error occurred';
+}
+
 interface GoalWithProgress extends Goal {
   percentage: number;
   isCompleted: boolean;
@@ -78,8 +84,8 @@ export function useGoals(options: UseGoalsOptions = {}): UseGoalsReturn {
       });
 
       setGoals(goalsWithProgress);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch goals');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to fetch goals');
     } finally {
       setIsLoading(false);
     }
@@ -103,8 +109,8 @@ export function useGoals(options: UseGoalsOptions = {}): UseGoalsReturn {
         toast.success('Goal created successfully!');
         await fetchGoals();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to create goal');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to create goal');
         return false;
       }
     },
@@ -128,8 +134,8 @@ export function useGoals(options: UseGoalsOptions = {}): UseGoalsReturn {
         toast.success('Goal updated successfully!');
         await fetchGoals();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to update goal');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to update goal');
         return false;
       }
     },
@@ -153,8 +159,8 @@ export function useGoals(options: UseGoalsOptions = {}): UseGoalsReturn {
         toast.success('Goal deleted successfully!');
         await fetchGoals();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to delete goal');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to delete goal');
         return false;
       }
     },
@@ -200,8 +206,8 @@ export function useGoals(options: UseGoalsOptions = {}): UseGoalsReturn {
 
         await fetchGoals();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to add contribution');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to add contribution');
         return false;
       }
     },

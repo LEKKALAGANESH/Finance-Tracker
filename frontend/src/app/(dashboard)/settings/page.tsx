@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import styled from 'styled-components';
-import { User, Moon, Sun, DollarSign, Lock, Trash2, Download, Bell, Plus, Edit2, Tag } from 'lucide-react';
+import { User, Moon, Sun, Lock, Trash2, Download, Bell, Plus, Edit2, Tag } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -341,7 +341,7 @@ const CURRENCIES = [
   { value: 'AUD', label: '$ AUD - Australian Dollar' },
 ];
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { user, signOut } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const toast = useToast();
@@ -968,5 +968,13 @@ export default function SettingsPage() {
         </ModalContent>
       </Modal>
     </>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsContent />
+    </Suspense>
   );
 }

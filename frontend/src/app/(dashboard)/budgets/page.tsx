@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Edit, Plus, Trash2, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -12,19 +12,96 @@ import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { CategoryModal } from "@/components/categories/CategoryModal";
 import { useAuth } from "@/context/AuthContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useToast } from "@/context/ToastContext";
 import { BUDGET_PERIODS } from "@/lib/constants";
 import { CategoryFormData } from "@/lib/validations";
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+
+// Animation keyframes
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const staggeredAnimation = (index: number) => css`
+  opacity: 0;
+  animation: ${fadeInUp} 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: ${index * 0.08}s;
+`;
+
+// Page wrapper with background effects
+const PageWrapper = styled.div`
+  position: relative;
+  min-height: 100%;
+
+  &::before {
+    content: '';
+    position: fixed;
+    top: -15%;
+    right: -8%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(
+      circle,
+      ${({ theme }) => theme.colors.primary}08 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &::after {
+    content: '';
+    position: fixed;
+    bottom: -10%;
+    left: -5%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(
+      circle,
+      ${({ theme }) => theme.colors.secondary}06 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+`;
+
+const PageContent = styled.div`
+  position: relative;
+  z-index: 1;
+`;
 
 const PageHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.md};
+  ${staggeredAnimation(0)}
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      width: 100%;
+    }
+  }
+`;
+
+const PageTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
 
   h1 {
     font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
@@ -35,15 +112,18 @@ const PageHeader = styled.div`
       font-size: ${({ theme }) => theme.typography.fontSize.xl};
     }
   }
+`;
 
-  @media (max-width: 480px) {
-    flex-direction: column;
-    align-items: stretch;
-
-    button {
-      width: 100%;
-    }
-  }
+const PageTitleIcon = styled.span`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  background: ${({ theme }) => theme.gradients.primary};
+  color: white;
+  flex-shrink: 0;
 `;
 
 const BudgetGrid = styled.div`
@@ -56,8 +136,16 @@ const BudgetGrid = styled.div`
   }
 `;
 
-const BudgetCard = styled(Card)`
+const BudgetCard = styled(Card)<{ $index?: number }>`
   position: relative;
+  opacity: 0;
+  animation: ${fadeInUp} 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: ${({ $index }) => 0.3 + ($index || 0) * 0.1}s;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:hover {
+    transform: translateY(-4px);
+  }
 `;
 
 const BudgetHeader = styled.div`
@@ -75,12 +163,22 @@ const BudgetInfo = styled.div`
 const CategoryIcon = styled.div<{ $color: string }>`
   width: 48px;
   height: 48px;
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  background: ${({ $color }) => `${$color}15`};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  background: linear-gradient(
+    135deg,
+    ${({ $color }) => `${$color}20`} 0%,
+    ${({ $color }) => `${$color}10`} 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
+  box-shadow: 0 2px 8px ${({ $color }) => `${$color}15`};
+  transition: all 0.3s ease;
+
+  ${BudgetCard}:hover & {
+    transform: scale(1.1) rotate(5deg);
+  }
 `;
 
 const BudgetDetails = styled.div`
@@ -183,16 +281,18 @@ const ProgressFill = styled.div<{ $percentage: number; $isOver: boolean }>`
   }
 `;
 
-const AlertBanner = styled.div`
+const AlertBanner = styled.div<{ $variant?: 'warning' | 'error' }>`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing.sm};
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-  background: ${({ theme }) => theme.colors.warningLight};
+  background: ${({ theme, $variant }) =>
+    $variant === 'error' ? theme.colors.errorLight : theme.colors.warningLight};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   margin-top: ${({ theme }) => theme.spacing.md};
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
-  color: ${({ theme }) => theme.colors.warning};
+  color: ${({ theme, $variant }) =>
+    $variant === 'error' ? theme.colors.error : theme.colors.warning};
 `;
 
 const EmptyState = styled.div`
@@ -378,6 +478,109 @@ const AddCategoryButton = styled.button`
   }
 `;
 
+// Budget Overview Styles
+const BudgetOverviewCard = styled.div`
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  padding: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+`;
+
+const OverviewHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+
+  h3 {
+    font-size: ${({ theme }) => theme.typography.fontSize.lg};
+    font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+    color: ${({ theme }) => theme.colors.text};
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+`;
+
+const OverviewStats = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
+const OverviewStat = styled.div<{ $color?: string }>`
+  text-align: center;
+  padding: ${({ theme }) => theme.spacing.md};
+  background: ${({ theme }) => theme.colors.surfaceHover};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+
+  span:first-child {
+    display: block;
+    font-size: ${({ theme }) => theme.typography.fontSize.sm};
+    color: ${({ theme }) => theme.colors.textSecondary};
+    margin-bottom: 4px;
+  }
+
+  span:last-child {
+    display: block;
+    font-size: ${({ theme }) => theme.typography.fontSize.xl};
+    font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+    color: ${({ $color, theme }) => $color || theme.colors.text};
+  }
+`;
+
+const OverviewProgressBar = styled.div`
+  height: 24px;
+  background: ${({ theme }) => theme.colors.surfaceHover};
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  overflow: hidden;
+  display: flex;
+  position: relative;
+`;
+
+const OverviewProgressSegment = styled.div<{ $width: number; $color: string }>`
+  height: 100%;
+  width: ${({ $width }) => Math.min(Math.max($width, 0), 100)}%;
+  background: ${({ $color }) => $color};
+  transition: width 0.5s ease;
+`;
+
+const OverviewLegend = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-top: ${({ theme }) => theme.spacing.md};
+  justify-content: center;
+
+  @media (max-width: 640px) {
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+`;
+
+const LegendColor = styled.div<{ $color: string }>`
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: ${({ $color }) => $color};
+`;
+
+const LegendText = styled.span`
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.textSecondary};
+`;
+
 interface Budget {
   id: string;
   category_id: string | null;
@@ -395,6 +598,7 @@ interface Budget {
 
 export default function BudgetsPage() {
   const { user } = useAuth();
+  const { formatCurrency } = useCurrency();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -404,6 +608,7 @@ export default function BudgetsPage() {
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [totalSaved, setTotalSaved] = useState(0);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -438,14 +643,54 @@ export default function BudgetsPage() {
       .select("*, category:categories(id, name, icon, color)")
       .eq("user_id", user.id);
 
-    // Calculate spent for each budget
+    // Fetch this month's savings (contributions)
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString()
-      .split("T")[0];
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      .toISOString()
-      .split("T")[0];
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+    const { data: contributions } = await supabase
+      .from("goal_contributions")
+      .select("amount")
+      .eq("user_id", user.id)
+      .gte("date", monthStart)
+      .lte("date", monthEnd);
+
+    const savedAmount = contributions?.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0) || 0;
+    setTotalSaved(savedAmount);
+
+    // Calculate spent for each budget based on its period
+    // Helper function to get date range based on budget period
+    const getDateRange = (period: string) => {
+      const today = new Date();
+      let startDate: Date;
+      let endDate: Date;
+
+      switch (period) {
+        case 'weekly':
+          // Start from Sunday of current week
+          const dayOfWeek = today.getDay();
+          startDate = new Date(today);
+          startDate.setDate(today.getDate() - dayOfWeek);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          break;
+        case 'yearly':
+          startDate = new Date(today.getFullYear(), 0, 1);
+          endDate = new Date(today.getFullYear(), 11, 31);
+          break;
+        case 'monthly':
+        default:
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          break;
+      }
+
+      return {
+        start: startDate.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0],
+      };
+    };
 
     const budgetsWithSpent = await Promise.all(
       (budgetsData || []).map(
@@ -459,12 +704,14 @@ export default function BudgetsPage() {
             };
           },
         ) => {
+          const { start, end } = getDateRange(budget.period);
+
           let query = supabase
             .from("expenses")
             .select("amount")
             .eq("user_id", user.id)
-            .gte("date", startOfMonth)
-            .lte("date", endOfMonth);
+            .gte("date", start)
+            .lte("date", end);
 
           if (budget.category_id) {
             query = query.eq("category_id", budget.category_id);
@@ -609,13 +856,89 @@ export default function BudgetsPage() {
   }
 
   return (
-    <>
+    <PageWrapper>
+      <PageContent>
       <PageHeader>
-        <h1>Budgets</h1>
+        <PageTitle>
+          <PageTitleIcon><Wallet size={20} /></PageTitleIcon>
+          <h1>Budgets</h1>
+        </PageTitle>
         <Button leftIcon={<Plus size={18} />} onClick={() => openModal()}>
           Create Budget
         </Button>
       </PageHeader>
+
+      {/* Budget Overview Summary */}
+      {budgets.length > 0 && (() => {
+        const totalBudget = budgets
+          .filter(b => b.period === 'monthly')
+          .reduce((sum, b) => sum + b.amount, 0);
+        const totalSpent = budgets
+          .filter(b => b.period === 'monthly')
+          .reduce((sum, b) => sum + (b.spent || 0), 0);
+        const totalUsed = totalSpent + totalSaved;
+        const remaining = Math.max(0, totalBudget - totalUsed);
+        const overBudget = totalUsed > totalBudget;
+
+        const spentPercent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+        const savedPercent = totalBudget > 0 ? (totalSaved / totalBudget) * 100 : 0;
+        const remainingPercent = totalBudget > 0 ? (remaining / totalBudget) * 100 : 0;
+
+        return (
+          <BudgetOverviewCard>
+            <OverviewHeader>
+              <h3>
+                <Wallet size={20} />
+                Monthly Budget Overview
+              </h3>
+            </OverviewHeader>
+
+            <OverviewStats>
+              <OverviewStat $color="#6366f1">
+                <span>Total Budget</span>
+                <span>{formatCurrency(totalBudget)}</span>
+              </OverviewStat>
+              <OverviewStat $color="#ef4444">
+                <span>Total Spent</span>
+                <span>{formatCurrency(totalSpent)}</span>
+              </OverviewStat>
+              <OverviewStat $color="#10b981">
+                <span>Total Saved</span>
+                <span>{formatCurrency(totalSaved)}</span>
+              </OverviewStat>
+              <OverviewStat $color={overBudget ? "#f59e0b" : "#6b7280"}>
+                <span>{overBudget ? "Over Budget" : "Remaining"}</span>
+                <span>{overBudget ? `-${formatCurrency(totalUsed - totalBudget)}` : formatCurrency(remaining)}</span>
+              </OverviewStat>
+            </OverviewStats>
+
+            {totalBudget > 0 && (
+              <>
+                <OverviewProgressBar>
+                  <OverviewProgressSegment $width={spentPercent} $color="#ef4444" />
+                  <OverviewProgressSegment $width={savedPercent} $color="#10b981" />
+                  <OverviewProgressSegment $width={remainingPercent} $color="#d1d5db" />
+                </OverviewProgressBar>
+
+                <OverviewLegend>
+                  <LegendItem>
+                    <LegendColor $color="#ef4444" />
+                    <LegendText>Spent ({spentPercent.toFixed(0)}%)</LegendText>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendColor $color="#10b981" />
+                    <LegendText>Saved ({savedPercent.toFixed(0)}%)</LegendText>
+                  </LegendItem>
+                  <LegendItem>
+                    <LegendColor $color="#d1d5db" />
+                    <LegendText>Remaining ({remainingPercent.toFixed(0)}%)</LegendText>
+                  </LegendItem>
+                </OverviewLegend>
+              </>
+            )}
+          </BudgetOverviewCard>
+        );
+      })()}
 
       <BudgetGrid>
         {budgets.length === 0 ? (
@@ -628,7 +951,7 @@ export default function BudgetsPage() {
             </Button>
           </EmptyState>
         ) : (
-          budgets.map((budget) => {
+          budgets.map((budget, index) => {
             const percentage =
               budget.amount > 0
                 ? ((budget.spent || 0) / budget.amount) * 100
@@ -637,7 +960,7 @@ export default function BudgetsPage() {
             const isNearLimit = percentage >= budget.alert_threshold;
 
             return (
-              <BudgetCard key={budget.id}>
+              <BudgetCard key={budget.id} $index={index}>
                 <CardBody>
                   <BudgetHeader>
                     <BudgetInfo>
@@ -652,12 +975,13 @@ export default function BudgetsPage() {
                       </BudgetDetails>
                     </BudgetInfo>
                     <Actions>
-                      <IconButton onClick={() => openModal(budget)}>
+                      <IconButton onClick={() => openModal(budget)} aria-label="Edit budget">
                         <Edit size={18} />
                       </IconButton>
                       <IconButton
                         className="danger"
                         onClick={() => handleDelete(budget.id)}
+                        aria-label="Delete budget"
                       >
                         <Trash2 size={18} />
                       </IconButton>
@@ -693,9 +1017,7 @@ export default function BudgetsPage() {
                     </AlertBanner>
                   )}
                   {isOver && (
-                    <AlertBanner
-                      style={{ background: "#fee2e2", color: "#ef4444" }}
-                    >
+                    <AlertBanner $variant="error">
                       <AlertTriangle size={16} />
                       Budget exceeded by {(percentage - 100).toFixed(0)}%
                     </AlertBanner>
@@ -803,6 +1125,7 @@ export default function BudgetsPage() {
         onSave={handleCreateCategory}
         type="expense"
       />
-    </>
+      </PageContent>
+    </PageWrapper>
   );
 }

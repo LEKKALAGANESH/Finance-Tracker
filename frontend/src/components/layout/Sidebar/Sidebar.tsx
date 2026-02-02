@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import styled, { keyframes } from 'styled-components';
 import {
-  LayoutDashboard,
-  Receipt,
-  Wallet,
-  Target,
   BarChart3,
-  Sparkles,
-  Settings,
-  LogOut,
   ChevronLeft,
+  LayoutDashboard,
+  LogOut,
   Menu,
-} from 'lucide-react';
+  Receipt,
+  Settings,
+  Sparkles,
+  Target,
+  Wallet,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import styled, { keyframes } from "styled-components";
 
-import { useState } from 'react';
-import { SignOutModal } from '@/components/auth/SignOutModal';
+import { SignOutModal } from "@/components/auth/SignOutModal";
+import { useState } from "react";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -34,7 +34,7 @@ const SidebarContainer = styled.aside<{ $isCollapsed: boolean }>`
   left: 0;
   top: 0;
   bottom: 0;
-  width: ${({ $isCollapsed }) => ($isCollapsed ? '76px' : '260px')};
+  width: ${({ $isCollapsed }) => ($isCollapsed ? "76px" : "260px")};
   background: ${({ theme }) => theme.glass.backgroundStrong};
   backdrop-filter: ${({ theme }) => theme.glass.blurStrong};
   -webkit-backdrop-filter: ${({ theme }) => theme.glass.blurStrong};
@@ -46,8 +46,8 @@ const SidebarContainer = styled.aside<{ $isCollapsed: boolean }>`
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
 
   @media (max-width: 768px) {
-    width: ${({ $isCollapsed }) => ($isCollapsed ? '0' : '260px')};
-    ${({ $isCollapsed }) => $isCollapsed && 'border: none; box-shadow: none;'}
+    width: ${({ $isCollapsed }) => ($isCollapsed ? "0" : "260px")};
+    ${({ $isCollapsed }) => $isCollapsed && "border: none; box-shadow: none;"}
   }
 `;
 
@@ -61,7 +61,7 @@ const Logo = styled.div<{ $isCollapsed: boolean }>`
 
   /* Gradient glow behind logo */
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 12px;
     top: 50%;
@@ -83,8 +83,12 @@ const Logo = styled.div<{ $isCollapsed: boolean }>`
     background-clip: text;
     white-space: nowrap;
     opacity: ${({ $isCollapsed }) => ($isCollapsed ? 0 : 1)};
-    transform: translateX(${({ $isCollapsed }) => ($isCollapsed ? '-10px' : '0')});
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateX(
+      ${({ $isCollapsed }) => ($isCollapsed ? "-10px" : "0")}
+    );
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
   }
 
   svg {
@@ -136,7 +140,8 @@ const ToggleButton = styled.button<{ $isCollapsed: boolean }>`
   }
 
   svg {
-    transform: ${({ $isCollapsed }) => ($isCollapsed ? 'rotate(180deg)' : 'none')};
+    transform: ${({ $isCollapsed }) =>
+      $isCollapsed ? "rotate(180deg)" : "none"};
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -206,7 +211,7 @@ const NavLabel = styled.span<{ $isCollapsed: boolean }>`
   font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
   padding: 0 ${({ theme }) => theme.spacing.md};
   margin-bottom: ${({ theme }) => theme.spacing.sm};
-  display: ${({ $isCollapsed }) => ($isCollapsed ? 'none' : 'block')};
+  display: ${({ $isCollapsed }) => ($isCollapsed ? "none" : "block")};
 `;
 
 const Tooltip = styled.span`
@@ -228,7 +233,7 @@ const Tooltip = styled.span`
   box-shadow: ${({ theme }) => theme.shadows.lg};
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     right: 100%;
     top: 50%;
@@ -247,9 +252,8 @@ const NavIconWrapper = styled.div<{ $isActive: boolean }>`
   justify-content: center;
   border-radius: ${({ theme }) => theme.borderRadius.md};
   background: ${({ theme, $isActive }) =>
-    $isActive ? theme.colors.primary : 'transparent'};
-  color: ${({ theme, $isActive }) =>
-    $isActive ? 'white' : 'inherit'};
+    $isActive ? theme.colors.primary : "transparent"};
+  color: ${({ theme, $isActive }) => ($isActive ? "white" : "inherit")};
   transition: all 0.2s ease;
 
   svg {
@@ -261,27 +265,31 @@ const NavIconWrapper = styled.div<{ $isActive: boolean }>`
 const NavItem = styled(Link)<{ $isActive: boolean; $isCollapsed: boolean }>`
   display: flex;
   align-items: center;
+  text-decoration: normal;
   gap: ${({ theme }) => theme.spacing.md};
-  padding: ${({ $isCollapsed }) => ($isCollapsed ? '8px' : '8px 12px')};
+  padding: ${({ $isCollapsed }) => ($isCollapsed ? "8px" : "8px 12px")};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   color: ${({ theme, $isActive }) =>
     $isActive ? theme.colors.primary : theme.colors.textSecondary};
   background: ${({ theme, $isActive, $isCollapsed }) =>
-    $isActive && !$isCollapsed ? theme.colors.primaryLight : 'transparent'};
+    $isActive && !$isCollapsed ? theme.colors.primaryLight : "transparent"};
   font-weight: ${({ theme, $isActive }) =>
-    $isActive ? theme.typography.fontWeight.semibold : theme.typography.fontWeight.medium};
+    $isActive
+      ? theme.typography.fontWeight.semibold
+      : theme.typography.fontWeight.medium};
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 4px;
   position: relative;
-  justify-content: ${({ $isCollapsed }) => ($isCollapsed ? 'center' : 'flex-start')};
+  justify-content: ${({ $isCollapsed }) =>
+    $isCollapsed ? "center" : "flex-start"};
 
   &:hover {
     background: ${({ theme, $isActive, $isCollapsed }) =>
       $isCollapsed
-        ? 'transparent'
+        ? "transparent"
         : $isActive
-        ? theme.colors.primaryLight
-        : theme.colors.surfaceHover};
+          ? theme.colors.primaryLight
+          : theme.colors.surfaceHover};
     color: ${({ theme, $isActive }) =>
       $isActive ? theme.colors.primary : theme.colors.text};
   }
@@ -290,23 +298,26 @@ const NavItem = styled(Link)<{ $isActive: boolean; $isCollapsed: boolean }>`
     background: ${({ theme, $isActive }) =>
       $isActive ? theme.colors.primaryHover : theme.colors.surfaceHover};
     color: ${({ theme, $isActive }) =>
-      $isActive ? 'white' : theme.colors.primary};
+      $isActive ? "white" : theme.colors.primary};
     transform: scale(1.05);
   }
 
   span {
     white-space: nowrap;
     opacity: ${({ $isCollapsed }) => ($isCollapsed ? 0 : 1)};
-    width: ${({ $isCollapsed }) => ($isCollapsed ? 0 : 'auto')};
+    width: ${({ $isCollapsed }) => ($isCollapsed ? 0 : "auto")};
     overflow: hidden;
-    transition: opacity 0.2s ease, width 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      width 0.2s ease;
   }
 
   /* Tooltip on collapsed state */
   &:hover ${Tooltip} {
     opacity: ${({ $isCollapsed }) => ($isCollapsed ? 1 : 0)};
-    visibility: ${({ $isCollapsed }) => ($isCollapsed ? 'visible' : 'hidden')};
-    transform: ${({ $isCollapsed }) => ($isCollapsed ? 'translateX(0)' : 'translateX(-8px)')};
+    visibility: ${({ $isCollapsed }) => ($isCollapsed ? "visible" : "hidden")};
+    transform: ${({ $isCollapsed }) =>
+      $isCollapsed ? "translateX(0)" : "translateX(-8px)"};
   }
 `;
 
@@ -340,7 +351,7 @@ const NavButton = styled.button<{ $isCollapsed: boolean; $isDanger?: boolean }>`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing.md};
-  padding: ${({ $isCollapsed }) => ($isCollapsed ? '8px' : '8px 12px')};
+  padding: ${({ $isCollapsed }) => ($isCollapsed ? "8px" : "8px 12px")};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   color: ${({ theme, $isDanger }) =>
     $isDanger ? theme.colors.error : theme.colors.textSecondary};
@@ -349,11 +360,16 @@ const NavButton = styled.button<{ $isCollapsed: boolean; $isDanger?: boolean }>`
   font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  justify-content: ${({ $isCollapsed }) => ($isCollapsed ? 'center' : 'flex-start')};
+  justify-content: ${({ $isCollapsed }) =>
+    $isCollapsed ? "center" : "flex-start"};
 
   &:hover {
     background: ${({ $isCollapsed, $isDanger, theme }) =>
-      $isCollapsed ? 'transparent' : $isDanger ? `${theme.colors.error}08` : 'inherit'};
+      $isCollapsed
+        ? "transparent"
+        : $isDanger
+          ? `${theme.colors.error}08`
+          : "inherit"};
   }
 
   &:hover ${NavButtonIconWrapper} {
@@ -364,29 +380,34 @@ const NavButton = styled.button<{ $isCollapsed: boolean; $isDanger?: boolean }>`
     transform: scale(1.05);
 
     svg {
-      animation: ${({ $isDanger }) => $isDanger ? dangerIconWiggle : 'none'} 0.4s ease;
+      animation: ${({ $isDanger }) => ($isDanger ? dangerIconWiggle : "none")}
+        0.4s ease;
     }
   }
 
   &:focus-visible {
-    outline: 2px solid ${({ theme, $isDanger }) =>
-      $isDanger ? theme.colors.error : theme.colors.primary};
+    outline: 2px solid
+      ${({ theme, $isDanger }) =>
+        $isDanger ? theme.colors.error : theme.colors.primary};
     outline-offset: 2px;
   }
 
   span {
     white-space: nowrap;
     opacity: ${({ $isCollapsed }) => ($isCollapsed ? 0 : 1)};
-    width: ${({ $isCollapsed }) => ($isCollapsed ? 0 : 'auto')};
+    width: ${({ $isCollapsed }) => ($isCollapsed ? 0 : "auto")};
     overflow: hidden;
-    transition: opacity 0.2s ease, width 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      width 0.2s ease;
   }
 
   /* Tooltip on collapsed state */
   &:hover ${Tooltip} {
     opacity: ${({ $isCollapsed }) => ($isCollapsed ? 1 : 0)};
-    visibility: ${({ $isCollapsed }) => ($isCollapsed ? 'visible' : 'hidden')};
-    transform: ${({ $isCollapsed }) => ($isCollapsed ? 'translateX(0)' : 'translateX(-8px)')};
+    visibility: ${({ $isCollapsed }) => ($isCollapsed ? "visible" : "hidden")};
+    transform: ${({ $isCollapsed }) =>
+      $isCollapsed ? "translateX(0)" : "translateX(-8px)"};
   }
 `;
 
@@ -397,12 +418,12 @@ const UserSection = styled.div`
 `;
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/expenses', label: 'Expenses', icon: Receipt },
-  { href: '/budgets', label: 'Budgets', icon: Wallet },
-  { href: '/goals', label: 'Goals', icon: Target },
-  { href: '/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/insights', label: 'AI Insights', icon: Sparkles },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/expenses", label: "Expenses", icon: Receipt },
+  { href: "/budgets", label: "Budgets", icon: Wallet },
+  { href: "/goals", label: "Goals", icon: Target },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/insights", label: "AI Insights", icon: Sparkles },
 ];
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
@@ -454,10 +475,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             <NavLabel $isCollapsed={isCollapsed}>Settings</NavLabel>
             <NavItem
               href="/settings"
-              $isActive={pathname === '/settings'}
+              $isActive={pathname === "/settings"}
               $isCollapsed={isCollapsed}
             >
-              <NavIconWrapper $isActive={pathname === '/settings'}>
+              <NavIconWrapper $isActive={pathname === "/settings"}>
                 <Settings />
               </NavIconWrapper>
               <span>Settings</span>
@@ -467,7 +488,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         </Nav>
 
         <UserSection>
-          <NavButton $isCollapsed={isCollapsed} $isDanger onClick={handleSignOutClick}>
+          <NavButton
+            $isCollapsed={isCollapsed}
+            $isDanger
+            onClick={handleSignOutClick}
+          >
             <NavButtonIconWrapper $isDanger>
               <LogOut />
             </NavButtonIconWrapper>

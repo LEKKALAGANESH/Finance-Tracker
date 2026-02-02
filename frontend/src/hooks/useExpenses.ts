@@ -4,6 +4,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import type { Expense } from '@/types/expense';
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'An unknown error occurred';
+}
+
 interface UseExpensesOptions {
   startDate?: string;
   endDate?: string;
@@ -66,8 +72,8 @@ export function useExpenses(options: UseExpensesOptions = {}): UseExpensesReturn
 
       setExpenses(data || []);
       setTotalCount(count || 0);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch expenses');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to fetch expenses');
     } finally {
       setIsLoading(false);
     }
@@ -89,8 +95,8 @@ export function useExpenses(options: UseExpensesOptions = {}): UseExpensesReturn
         toast.success('Expense added successfully!');
         await fetchExpenses();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to create expense');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to create expense');
         return false;
       }
     },
@@ -114,8 +120,8 @@ export function useExpenses(options: UseExpensesOptions = {}): UseExpensesReturn
         toast.success('Expense updated successfully!');
         await fetchExpenses();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to update expense');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to update expense');
         return false;
       }
     },
@@ -139,8 +145,8 @@ export function useExpenses(options: UseExpensesOptions = {}): UseExpensesReturn
         toast.success('Expense deleted successfully!');
         await fetchExpenses();
         return true;
-      } catch (err: any) {
-        toast.error(err.message || 'Failed to delete expense');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err) || 'Failed to delete expense');
         return false;
       }
     },

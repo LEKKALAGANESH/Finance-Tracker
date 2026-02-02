@@ -46,8 +46,7 @@ const Card = styled.div<{ $color: string }>`
   align-items: flex-start;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: ${fadeInUp} 0.5s ease forwards;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Gradient accent at top */
   &::before {
@@ -56,9 +55,10 @@ const Card = styled.div<{ $color: string }>`
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
+    height: 4px;
     background: linear-gradient(90deg, ${({ $color }) => $color}, ${({ $color }) => $color}80);
-    opacity: 0.8;
+    opacity: 0.9;
+    transition: height 0.3s ease;
   }
 
   /* Subtle background gradient */
@@ -71,12 +71,45 @@ const Card = styled.div<{ $color: string }>`
     height: 150px;
     background: radial-gradient(circle, ${({ $color }) => $color}08 0%, transparent 70%);
     pointer-events: none;
+    transition: transform 0.5s ease;
   }
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: ${({ theme }) => theme.shadows.lg}, 0 4px 20px ${({ $color }) => $color}20;
-    border-color: ${({ $color }) => $color}30;
+    box-shadow: ${({ theme }) => theme.shadows.lg}, 0 4px 24px ${({ $color }) => $color}25;
+    border-color: ${({ $color }) => $color}40;
+
+    &::before {
+      height: 5px;
+    }
+
+    &::after {
+      transform: scale(1.2);
+    }
+  }
+
+  &:active {
+    transform: translateY(-2px);
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.spacing.md};
+  }
+
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.md};
+    flex-direction: row-reverse;
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
   }
 `;
 
@@ -89,11 +122,15 @@ const Content = styled.div`
 `;
 
 const Title = styled.span`
-  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
   color: ${({ theme }) => theme.colors.textMuted};
   font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
+
+  @media (max-width: 480px) {
+    font-size: 0.7rem;
+  }
 `;
 
 const Value = styled.span`
@@ -103,6 +140,15 @@ const Value = styled.span`
   letter-spacing: -0.02em;
   font-feature-settings: 'tnum';
   display: inline-block;
+  line-height: 1.2;
+
+  @media (max-width: 768px) {
+    font-size: ${({ theme }) => theme.typography.fontSize['2xl']};
+  }
+
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  }
 `;
 
 const AnimatedValue = styled.span<{ $isAnimating: boolean }>`
@@ -120,7 +166,7 @@ const Trend = styled.div<{ $isPositive: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
   font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   color: ${({ theme, $isPositive }) =>
     $isPositive ? theme.colors.success : theme.colors.error};
@@ -130,13 +176,29 @@ const Trend = styled.div<{ $isPositive: boolean }>`
     $isPositive ? theme.colors.successLight : theme.colors.errorLight};
   border-radius: ${({ theme }) => theme.borderRadius.full};
   width: fit-content;
+  transition: all 0.2s ease;
 
   svg {
     transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    transform: scale(1.02);
   }
 
   &:hover svg {
     transform: ${({ $isPositive }) => ($isPositive ? 'translateY(-2px)' : 'translateY(2px)')};
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+
+    svg {
+      width: 12px;
+      height: 12px;
+    }
   }
 `;
 
@@ -151,8 +213,9 @@ const IconWrapper = styled.div<{ $color: string }>`
   color: ${({ $color }) => $color};
   position: relative;
   z-index: 1;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   box-shadow: 0 4px 12px ${({ $color }) => $color}15;
+  flex-shrink: 0;
 
   &::before {
     content: '';
@@ -179,6 +242,33 @@ const IconWrapper = styled.div<{ $color: string }>`
 
     svg {
       color: white;
+    }
+  }
+
+  @media (max-width: 768px) {
+    width: 48px;
+    height: 48px;
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    width: 44px;
+    height: 44px;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    ${Card}:hover & {
+      transform: none;
     }
   }
 `;

@@ -3,29 +3,32 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Download } from 'lucide-react';
-import {
-  PieChart as RechartsPie,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from 'recharts';
 
 import { useAuth } from '@/context/AuthContext';
+import { useCurrency } from '@/context/CurrencyContext';
 import { useToast } from '@/context/ToastContext';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Loader } from '@/components/ui/Loader';
+
+// Import recharts components directly - tree shaking handles bundle optimization
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 
 const PageHeader = styled.div`
   display: flex;
@@ -212,6 +215,7 @@ const PercentageBar = styled.div<{ $percentage: number; $color: string }>`
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
 const MONTHS = [
+  { value: 'all', label: 'All Time' },
   { value: '1', label: 'January' },
   { value: '2', label: 'February' },
   { value: '3', label: 'March' },
@@ -228,6 +232,7 @@ const MONTHS = [
 
 export default function ReportsPage() {
   const { user } = useAuth();
+  const { currency, formatCurrency } = useCurrency();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
@@ -235,6 +240,7 @@ export default function ReportsPage() {
 
   const [stats, setStats] = useState({
     totalSpent: 0,
+    totalSaved: 0,
     avgPerDay: 0,
     transactions: 0,
     topCategory: '',
@@ -258,97 +264,178 @@ export default function ReportsPage() {
     setIsLoading(true);
     const supabase = getSupabaseClient();
 
-    const month = parseInt(selectedMonth);
-    const year = parseInt(selectedYear);
-    const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
-    const daysInMonth = new Date(year, month, 0).getDate();
+    try {
+      // Build date range
+      let startDate: string | null = null;
+      let endDate: string | null = null;
+      let daysInPeriod = 30; // Default for average calculation
 
-    // Fetch expenses for selected month
-    const { data: expenses } = await supabase
-      .from('expenses')
-      .select('*, category:categories(id, name, icon, color)')
-      .eq('user_id', user.id)
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: true });
-
-    // Define expense type for this context
-    type ExpenseData = {
-      amount: number;
-      date: string;
-      category_id: string;
-      category?: { id: string; name: string; icon: string; color: string };
-    };
-
-    // Calculate stats
-    const totalSpent = expenses?.reduce((sum: number, e: ExpenseData) => sum + e.amount, 0) || 0;
-    const avgPerDay = totalSpent / daysInMonth;
-
-    // Category breakdown
-    const categoryTotals: Record<string, { name: string; value: number; color: string; icon: string }> = {};
-    (expenses || []).forEach((e: ExpenseData) => {
-      const catId = e.category_id || 'other';
-      const catName = e.category?.name || 'Other';
-      const catColor = e.category?.color || '#6b7280';
-      const catIcon = e.category?.icon || '📦';
-
-      if (!categoryTotals[catId]) {
-        categoryTotals[catId] = { name: catName, value: 0, color: catColor, icon: catIcon };
+      if (selectedMonth !== 'all') {
+        const month = parseInt(selectedMonth);
+        const year = parseInt(selectedYear);
+        startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+        endDate = new Date(year, month, 0).toISOString().split('T')[0];
+        daysInPeriod = new Date(year, month, 0).getDate();
       }
-      categoryTotals[catId].value += e.amount;
-    });
 
-    const sortedCategories = Object.values(categoryTotals).sort((a, b) => b.value - a.value);
-    const topCategory = sortedCategories[0]?.name || 'N/A';
-
-    setStats({
-      totalSpent,
-      avgPerDay,
-      transactions: expenses?.length || 0,
-      topCategory,
-    });
-
-    setCategoryData(sortedCategories.map((c, i) => ({ ...c, color: c.color || COLORS[i % COLORS.length] })));
-
-    // Daily spending data
-    const dailyTotals: Record<string, number> = {};
-    (expenses || []).forEach((e: ExpenseData) => {
-      const day = new Date(e.date).getDate().toString();
-      dailyTotals[day] = (dailyTotals[day] || 0) + e.amount;
-    });
-
-    const dailyChartData = Array.from({ length: daysInMonth }, (_, i) => ({
-      day: (i + 1).toString(),
-      amount: dailyTotals[(i + 1).toString()] || 0,
-    }));
-    setDailyData(dailyChartData);
-
-    // Monthly trend (last 6 months)
-    const trendData = [];
-    for (let i = 5; i >= 0; i--) {
-      const trendDate = new Date(year, month - 1 - i, 1);
-      const trendStart = trendDate.toISOString().split('T')[0];
-      const trendEnd = new Date(trendDate.getFullYear(), trendDate.getMonth() + 1, 0)
-        .toISOString()
-        .split('T')[0];
-
-      const { data: monthExpenses } = await supabase
+      // Build expense query
+      let expenseQuery = supabase
         .from('expenses')
-        .select('amount')
+        .select('*, category:categories(id, name, icon, color)')
         .eq('user_id', user.id)
-        .gte('date', trendStart)
-        .lte('date', trendEnd);
+        .order('date', { ascending: true });
 
-      const monthTotal = monthExpenses?.reduce((sum: number, e: { amount: number }) => sum + e.amount, 0) || 0;
-      trendData.push({
-        month: trendDate.toLocaleString('default', { month: 'short' }),
-        amount: monthTotal,
+      if (startDate && endDate) {
+        expenseQuery = expenseQuery.gte('date', startDate).lte('date', endDate);
+      }
+
+      // Build contributions query
+      let contributionsQuery = supabase
+        .from('goal_contributions')
+        .select('*, goal:goals(id, name, icon, color)')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true });
+
+      if (startDate && endDate) {
+        contributionsQuery = contributionsQuery.gte('date', startDate).lte('date', endDate);
+      }
+
+      // Fetch both expenses and contributions
+      const [expensesResult, contributionsResult] = await Promise.all([
+        expenseQuery,
+        contributionsQuery,
+      ]);
+
+      const expenses = expensesResult.data;
+      const contributions = contributionsResult.data;
+
+      // Define types
+      type ExpenseData = {
+        amount: number;
+        date: string;
+        category_id: string;
+        category?: { id: string; name: string; icon: string; color: string };
+      };
+
+      type ContributionData = {
+        amount: number;
+        date: string;
+        goal?: { id: string; name: string; icon: string; color: string };
+      };
+
+      // Calculate stats
+      const totalSpent = expenses?.reduce((sum: number, e: ExpenseData) => sum + e.amount, 0) || 0;
+      const totalSaved = contributions?.reduce((sum: number, c: ContributionData) => sum + c.amount, 0) || 0;
+
+      // For all time, calculate days since first transaction
+      if (selectedMonth === 'all' && expenses && expenses.length > 0) {
+        const firstDate = new Date(expenses[0].date);
+        const today = new Date();
+        daysInPeriod = Math.max(1, Math.ceil((today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
+      }
+
+      const avgPerDay = totalSpent / daysInPeriod;
+
+      // Category breakdown for expenses
+      const categoryTotals: Record<string, { name: string; value: number; color: string; icon: string }> = {};
+      (expenses || []).forEach((e: ExpenseData) => {
+        const catId = e.category_id || 'other';
+        const catName = e.category?.name || 'Other';
+        const catColor = e.category?.color || '#6b7280';
+        const catIcon = e.category?.icon || '📦';
+
+        if (!categoryTotals[catId]) {
+          categoryTotals[catId] = { name: catName, value: 0, color: catColor, icon: catIcon };
+        }
+        categoryTotals[catId].value += e.amount;
       });
-    }
-    setMonthlyTrend(trendData);
 
-    setIsLoading(false);
+      const sortedCategories = Object.values(categoryTotals).sort((a, b) => b.value - a.value);
+      const topCategory = sortedCategories[0]?.name || 'N/A';
+
+      const totalTransactions = (expenses?.length || 0) + (contributions?.length || 0);
+
+      setStats({
+        totalSpent,
+        totalSaved,
+        avgPerDay,
+        transactions: totalTransactions,
+        topCategory,
+      });
+
+      setCategoryData(sortedCategories.map((c, i) => ({ ...c, color: c.color || COLORS[i % COLORS.length] })));
+
+      // Daily spending data (only for specific month, not all time)
+      if (selectedMonth !== 'all') {
+        const month = parseInt(selectedMonth);
+        const year = parseInt(selectedYear);
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        const dailyTotals: Record<string, { spent: number; saved: number }> = {};
+        (expenses || []).forEach((e: ExpenseData) => {
+          const day = new Date(e.date).getDate().toString();
+          if (!dailyTotals[day]) dailyTotals[day] = { spent: 0, saved: 0 };
+          dailyTotals[day].spent += e.amount;
+        });
+        (contributions || []).forEach((c: ContributionData) => {
+          const day = new Date(c.date).getDate().toString();
+          if (!dailyTotals[day]) dailyTotals[day] = { spent: 0, saved: 0 };
+          dailyTotals[day].saved += c.amount;
+        });
+
+        const dailyChartData = Array.from({ length: daysInMonth }, (_, i) => ({
+          day: (i + 1).toString(),
+          spent: dailyTotals[(i + 1).toString()]?.spent || 0,
+          saved: dailyTotals[(i + 1).toString()]?.saved || 0,
+        }));
+        setDailyData(dailyChartData);
+      } else {
+        setDailyData([]);
+      }
+
+      // Monthly trend (last 6 months from selected or current month)
+      const trendData = [];
+      const baseMonth = selectedMonth === 'all' ? new Date().getMonth() + 1 : parseInt(selectedMonth);
+      const baseYear = parseInt(selectedYear);
+
+      for (let i = 5; i >= 0; i--) {
+        const trendDate = new Date(baseYear, baseMonth - 1 - i, 1);
+        const trendStart = trendDate.toISOString().split('T')[0];
+        const trendEnd = new Date(trendDate.getFullYear(), trendDate.getMonth() + 1, 0)
+          .toISOString()
+          .split('T')[0];
+
+        const [monthExpensesResult, monthContributionsResult] = await Promise.all([
+          supabase
+            .from('expenses')
+            .select('amount')
+            .eq('user_id', user.id)
+            .gte('date', trendStart)
+            .lte('date', trendEnd),
+          supabase
+            .from('goal_contributions')
+            .select('amount')
+            .eq('user_id', user.id)
+            .gte('date', trendStart)
+            .lte('date', trendEnd),
+        ]);
+
+        const monthSpent = monthExpensesResult.data?.reduce((sum: number, e: { amount: number }) => sum + e.amount, 0) || 0;
+        const monthSaved = monthContributionsResult.data?.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0) || 0;
+
+        trendData.push({
+          month: trendDate.toLocaleString('default', { month: 'short' }),
+          spent: monthSpent,
+          saved: monthSaved,
+        });
+      }
+      setMonthlyTrend(trendData);
+    } catch (error) {
+      console.error('Error fetching report data:', error);
+      toast.error('Failed to load report data');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const exportToCSV = async () => {
@@ -431,23 +518,23 @@ export default function ReportsPage() {
           <h3>Total Spent</h3>
           <p>{formatCurrency(stats.totalSpent)}</p>
           <span>
-            {MONTHS.find((m) => m.value === selectedMonth)?.label} {selectedYear}
+            {selectedMonth === 'all' ? 'All Time' : `${MONTHS.find((m) => m.value === selectedMonth)?.label} ${selectedYear}`}
           </span>
+        </StatCard>
+        <StatCard>
+          <h3>Total Saved</h3>
+          <p>{formatCurrency(stats.totalSaved)}</p>
+          <span>Goal contributions</span>
         </StatCard>
         <StatCard>
           <h3>Daily Average</h3>
           <p>{formatCurrency(stats.avgPerDay)}</p>
-          <span>Per day</span>
+          <span>Spending per day</span>
         </StatCard>
         <StatCard>
           <h3>Transactions</h3>
           <p>{stats.transactions}</p>
-          <span>Total expenses</span>
-        </StatCard>
-        <StatCard>
-          <h3>Top Category</h3>
-          <p>{stats.topCategory}</p>
-          <span>Highest spending</span>
+          <span>Expenses + Savings</span>
         </StatCard>
       </StatsGrid>
 
@@ -457,7 +544,7 @@ export default function ReportsPage() {
           <CardBody>
             <ChartContainer>
               <ResponsiveContainer width="100%" height="100%">
-                <RechartsPie>
+                <PieChart>
                   <Pie
                     data={categoryData}
                     cx="50%"
@@ -475,7 +562,7 @@ export default function ReportsPage() {
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                </RechartsPie>
+                </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardBody>
@@ -489,14 +576,24 @@ export default function ReportsPage() {
                 <LineChart data={monthlyTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="month" stroke="#9ca3af" />
-                  <YAxis stroke="#9ca3af" tickFormatter={(value) => `$${value}`} />
+                  <YAxis stroke="#9ca3af" tickFormatter={(value) => `${currency.symbol}${value}`} />
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Legend />
                   <Line
                     type="monotone"
-                    dataKey="amount"
-                    stroke="#6366f1"
+                    dataKey="spent"
+                    name="Spent"
+                    stroke="#ef4444"
                     strokeWidth={3}
-                    dot={{ fill: '#6366f1', strokeWidth: 2 }}
+                    dot={{ fill: '#ef4444', strokeWidth: 2 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="saved"
+                    name="Saved"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ fill: '#10b981', strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -505,22 +602,26 @@ export default function ReportsPage() {
         </Card>
       </ChartsGrid>
 
-      <FullWidthChart>
-        <CardHeader title="Daily Spending" />
-        <CardBody>
-          <ChartContainer>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="day" stroke="#9ca3af" />
-                <YAxis stroke="#9ca3af" tickFormatter={(value) => `$${value}`} />
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardBody>
-      </FullWidthChart>
+      {selectedMonth !== 'all' && dailyData.length > 0 && (
+        <FullWidthChart>
+          <CardHeader title="Daily Activity" />
+          <CardBody>
+            <ChartContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dailyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="day" stroke="#9ca3af" />
+                  <YAxis stroke="#9ca3af" tickFormatter={(value) => `${currency.symbol}${value}`} />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Legend />
+                  <Bar dataKey="spent" name="Spent" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="saved" name="Saved" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardBody>
+        </FullWidthChart>
+      )}
 
       <Card>
         <CardHeader title="Category Breakdown" />

@@ -1,7 +1,13 @@
 import { useState, useCallback } from 'react';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { formatCurrency } from '@/lib/utils';
+import { useCurrency } from '@/context/CurrencyContext';
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'An unknown error occurred';
+}
 
 interface Insight {
   summary: string;
@@ -31,6 +37,7 @@ interface UseInsightsReturn {
 
 export function useInsights(): UseInsightsReturn {
   const { user } = useAuth();
+  const { formatCurrency } = useCurrency();
   const [insights, setInsights] = useState<Insight | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,12 +181,12 @@ export function useInsights(): UseInsightsReturn {
           topCategory,
         },
       });
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate insights');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to generate insights');
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, formatCurrency]);
 
   const askQuestion = useCallback(
     async (question: string): Promise<string> => {
@@ -219,7 +226,7 @@ export function useInsights(): UseInsightsReturn {
 
       return `Based on your financial data: ${insights.summary}\n\nWould you like specific advice about saving, spending, or budgeting?`;
     },
-    [insights]
+    [insights, formatCurrency]
   );
 
   return {

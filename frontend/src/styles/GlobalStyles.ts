@@ -269,4 +269,59 @@ export const GlobalStyles = createGlobalStyle<{ theme: Theme }>`
       transition-duration: 0.01ms !important;
     }
   }
+
+  /* Smooth page transitions */
+  .page-transition-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .page-transition-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .page-transition-exit {
+    opacity: 1;
+  }
+
+  .page-transition-exit-active {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  /* Touch device optimizations */
+  @media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets */
+    button, a, [role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Disable hover-dependent effects on touch */
+    *:hover {
+      transform: none !important;
+    }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    * {
+      border-color: currentColor !important;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    body {
+      background: white !important;
+      color: black !important;
+    }
+  }
 `;
