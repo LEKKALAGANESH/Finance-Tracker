@@ -1,29 +1,115 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import styled from 'styled-components';
-import { User, Moon, Sun, Lock, Trash2, Download, Bell, Plus, Edit2, Tag } from 'lucide-react';
+import {
+  Download,
+  Edit2,
+  Lock,
+  Moon,
+  Plus,
+  Sun,
+  Tag,
+  Trash2,
+} from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import styled from "styled-components";
 
-import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
-import { useToast } from '@/context/ToastContext';
-import { getSupabaseClient } from '@/lib/supabase/client';
-import { CategoryFormData } from '@/lib/validations';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { Modal } from '@/components/ui/Modal';
-import { Loader } from '@/components/ui/Loader';
-import { CategoryModal } from '@/components/categories/CategoryModal';
-import { Category } from '@/types/expense';
+import { CategoryModal } from "@/components/categories/CategoryModal";
+import { Button } from "@/components/ui/Button";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Loader } from "@/components/ui/Loader";
+import { Modal } from "@/components/ui/Modal";
+import { Select } from "@/components/ui/Select";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
+import { useToast } from "@/context/ToastContext";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import { CategoryFormData } from "@/lib/validations";
+import { Category } from "@/types/expense";
+
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+/**
+ * Category type filter
+ */
+type CategoryTabType = "expense" | "income";
+
+/**
+ * User profile data
+ */
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url?: string;
+  currency?: string;
+  timezone?: string;
+  created_at?: string;
+}
+
+/**
+ * Profile form data for updates
+ */
+interface ProfileFormData {
+  full_name: string;
+  email: string;
+}
+
+/**
+ * Password change form data
+ */
+interface PasswordFormData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/**
+ * Notification settings
+ */
+interface NotificationSettings {
+  emailNotifications: boolean;
+  budgetAlerts: boolean;
+  goalReminders: boolean;
+  weeklyReport: boolean;
+}
+
+/**
+ * Category expense count mapping
+ */
+type CategoryExpenseCounts = Record<string, number>;
+
+/**
+ * Settings page state
+ */
+interface SettingsState {
+  isLoading: boolean;
+  categoriesLoading: boolean;
+  isSaving: boolean;
+  categories: Category[];
+  categoryTab: CategoryTabType;
+  categoryModalOpen: boolean;
+  editingCategory: Category | null;
+  deleteModalOpen: boolean;
+  categoryToDelete: Category | null;
+  categoryExpenseCounts: CategoryExpenseCounts;
+}
+
+/**
+ * Props for styled CategoryColor component
+ */
+interface CategoryColorProps {
+  $color: string;
+}
 
 const PageHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.lg};
 
   h1 {
-    font-size: ${({ theme }) => theme.typography.fontSize['2xl']};
+    font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
   }
@@ -42,6 +128,10 @@ const SettingsGrid = styled.div`
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
   }
+`;
+
+const FullWidthSection = styled.div`
+  grid-column: 1 / -1;
 `;
 
 const SettingsCard = styled(Card)`
@@ -94,15 +184,16 @@ const ThemeToggle = styled.button<{ $isDark: boolean }>`
   width: 56px;
   height: 28px;
   border-radius: 14px;
-  background: ${({ $isDark, theme }) => ($isDark ? theme.colors.primary : theme.colors.border)};
+  background: ${({ $isDark, theme }) =>
+    $isDark ? theme.colors.primary : theme.colors.border};
   transition: background 0.2s ease;
   cursor: pointer;
 
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 2px;
-    left: ${({ $isDark }) => ($isDark ? '30px' : '2px')};
+    left: ${({ $isDark }) => ($isDark ? "30px" : "2px")};
     width: 24px;
     height: 24px;
     border-radius: 50%;
@@ -125,6 +216,7 @@ const FormActions = styled.div`
 `;
 
 const DangerZone = styled(Card)`
+  grid-column: 1 / -1;
   border-color: ${({ theme }) => theme.colors.error};
 `;
 
@@ -180,11 +272,11 @@ const CategoryTab = styled.button<{ $isActive: boolean }>`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
   background: ${({ theme, $isActive }) =>
-    $isActive ? theme.colors.surface : 'transparent'};
+    $isActive ? theme.colors.surface : "transparent"};
   color: ${({ theme, $isActive }) =>
     $isActive ? theme.colors.text : theme.colors.textMuted};
   box-shadow: ${({ theme, $isActive }) =>
-    $isActive ? theme.shadows.sm : 'none'};
+    $isActive ? theme.shadows.sm : "none"};
   transition: all 0.2s ease;
   cursor: pointer;
 
@@ -278,7 +370,7 @@ const EmptyCategoryState = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: ${({ theme }) => theme.spacing['2xl']};
+  padding: ${({ theme }) => theme.spacing["2xl"]};
   text-align: center;
   color: ${({ theme }) => theme.colors.textSecondary};
   border: 2px dashed ${({ theme }) => theme.colors.border};
@@ -313,7 +405,8 @@ const AddCategoryCard = styled.button`
     border-color: ${({ theme }) => theme.colors.primary};
     background: ${({ theme }) => theme.colors.primaryLight};
 
-    svg, span {
+    svg,
+    span {
       color: ${({ theme }) => theme.colors.primary};
     }
   }
@@ -332,13 +425,13 @@ const AddCategoryCard = styled.button`
 `;
 
 const CURRENCIES = [
-  { value: 'USD', label: '$ USD - US Dollar' },
-  { value: 'EUR', label: '€ EUR - Euro' },
-  { value: 'GBP', label: '£ GBP - British Pound' },
-  { value: 'INR', label: '₹ INR - Indian Rupee' },
-  { value: 'JPY', label: '¥ JPY - Japanese Yen' },
-  { value: 'CAD', label: '$ CAD - Canadian Dollar' },
-  { value: 'AUD', label: '$ AUD - Australian Dollar' },
+  { value: "USD", label: "$ USD - US Dollar" },
+  { value: "EUR", label: "€ EUR - Euro" },
+  { value: "GBP", label: "£ GBP - British Pound" },
+  { value: "INR", label: "₹ INR - Indian Rupee" },
+  { value: "JPY", label: "¥ JPY - Japanese Yen" },
+  { value: "CAD", label: "$ CAD - Canadian Dollar" },
+  { value: "AUD", label: "$ AUD - Australian Dollar" },
 ];
 
 function SettingsContent() {
@@ -356,81 +449,77 @@ function SettingsContent() {
 
   // Profile state
   const [profile, setProfile] = useState({
-    full_name: '',
-    currency: 'USD',
+    full_name: "",
+    currency: "USD",
   });
 
   // Password state
   const [passwords, setPasswords] = useState({
-    current: '',
-    new: '',
-    confirm: '',
+    current: "",
+    new: "",
+    confirm: "",
   });
 
   // Categories state
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [categoryTab, setCategoryTab] = useState<'expense' | 'income'>('expense');
+  const [categoryTab, setCategoryTab] = useState<"expense" | "income">(
+    "expense",
+  );
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
-  const [categoryExpenseCounts, setCategoryExpenseCounts] = useState<Record<string, number>>({});
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null,
+  );
+  const [categoryExpenseCounts, setCategoryExpenseCounts] = useState<
+    Record<string, number>
+  >({});
 
-  useEffect(() => {
-    fetchProfile();
-    fetchCategories();
-  }, [user]);
-
-  useEffect(() => {
-    // Scroll to categories section if tab=categories
-    if (searchParams.get('tab') === 'categories' && categoriesRef.current) {
-      setTimeout(() => {
-        categoriesRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
-  }, [searchParams, isLoading]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     if (!user) return;
 
     const supabase = getSupabaseClient();
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
     if (data) {
       setProfile({
-        full_name: data.full_name || user.user_metadata?.full_name || '',
-        currency: data.currency || 'USD',
+        full_name: data.full_name || user.user_metadata?.full_name || "",
+        currency: data.currency || "USD",
       });
     } else {
       setProfile({
-        full_name: user.user_metadata?.full_name || '',
-        currency: 'USD',
+        full_name: user.user_metadata?.full_name || "",
+        currency: "USD",
       });
     }
 
     setIsLoading(false);
-  };
+  }, [user]);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!user) return;
 
     setCategoriesLoading(true);
     const supabase = getSupabaseClient();
     const { data } = await supabase
-      .from('categories')
-      .select('*')
+      .from("categories")
+      .select("*")
       .or(`user_id.eq.${user.id},and(user_id.is.null,is_default.eq.true)`)
-      .order('name');
+      .order("name");
 
     setCategories(data || []);
 
     // Fetch expense counts for each category
     if (data && data.length > 0) {
       const { data: expenseCounts } = await supabase
-        .from('expenses')
-        .select('category_id')
-        .eq('user_id', user.id);
+        .from("expenses")
+        .select("category_id")
+        .eq("user_id", user.id);
 
       if (expenseCounts) {
         const counts: Record<string, number> = {};
@@ -442,7 +531,21 @@ function SettingsContent() {
     }
 
     setCategoriesLoading(false);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchProfile();
+    fetchCategories();
+  }, [fetchProfile, fetchCategories]);
+
+  useEffect(() => {
+    // Scroll to categories section if tab=categories
+    if (searchParams.get("tab") === "categories" && categoriesRef.current) {
+      setTimeout(() => {
+        categoriesRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [searchParams, isLoading]);
 
   const handleSaveCategory = async (data: CategoryFormData) => {
     if (!user) return;
@@ -452,23 +555,23 @@ function SettingsContent() {
     if (editingCategory) {
       // Update existing category
       const { error } = await supabase
-        .from('categories')
+        .from("categories")
         .update({
           name: data.name,
           icon: data.icon,
           color: data.color,
           type: data.type,
         })
-        .eq('id', editingCategory.id);
+        .eq("id", editingCategory.id);
 
       if (error) {
-        toast.error('Failed to update category');
+        toast.error("Failed to update category");
         throw error;
       }
-      toast.success('Category updated!');
+      toast.success("Category updated!");
     } else {
       // Create new category
-      const { error } = await supabase.from('categories').insert({
+      const { error } = await supabase.from("categories").insert({
         user_id: user.id,
         name: data.name,
         icon: data.icon,
@@ -478,10 +581,10 @@ function SettingsContent() {
       });
 
       if (error) {
-        toast.error('Failed to create category');
+        toast.error("Failed to create category");
         throw error;
       }
-      toast.success('Category created!');
+      toast.success("Category created!");
     }
 
     await fetchCategories();
@@ -490,7 +593,7 @@ function SettingsContent() {
 
   const handleEditCategory = (category: Category) => {
     if (category.is_default) {
-      toast.error('Default categories cannot be edited');
+      toast.error("Default categories cannot be edited");
       return;
     }
     setEditingCategory(category);
@@ -499,7 +602,7 @@ function SettingsContent() {
 
   const handleDeleteCategoryClick = (category: Category) => {
     if (category.is_default) {
-      toast.error('Default categories cannot be deleted');
+      toast.error("Default categories cannot be deleted");
       return;
     }
     setCategoryToDelete(category);
@@ -511,14 +614,14 @@ function SettingsContent() {
 
     const supabase = getSupabaseClient();
     const { error } = await supabase
-      .from('categories')
+      .from("categories")
       .delete()
-      .eq('id', categoryToDelete.id);
+      .eq("id", categoryToDelete.id);
 
     if (error) {
-      toast.error('Failed to delete category. It may be in use by expenses.');
+      toast.error("Failed to delete category. It may be in use by expenses.");
     } else {
-      toast.success('Category deleted!');
+      toast.success("Category deleted!");
       await fetchCategories();
     }
 
@@ -536,7 +639,7 @@ function SettingsContent() {
     setIsSaving(true);
     const supabase = getSupabaseClient();
 
-    const { error } = await supabase.from('profiles').upsert({
+    const { error } = await supabase.from("profiles").upsert({
       id: user.id,
       full_name: profile.full_name,
       currency: profile.currency,
@@ -544,9 +647,9 @@ function SettingsContent() {
     });
 
     if (error) {
-      toast.error('Failed to update profile');
+      toast.error("Failed to update profile");
     } else {
-      toast.success('Profile updated successfully!');
+      toast.success("Profile updated successfully!");
     }
 
     setIsSaving(false);
@@ -554,12 +657,12 @@ function SettingsContent() {
 
   const handleChangePassword = async () => {
     if (passwords.new !== passwords.confirm) {
-      toast.error('New passwords do not match');
+      toast.error("New passwords do not match");
       return;
     }
 
     if (passwords.new.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error("Password must be at least 6 characters");
       return;
     }
 
@@ -571,11 +674,11 @@ function SettingsContent() {
     });
 
     if (error) {
-      toast.error('Failed to change password');
+      toast.error("Failed to change password");
     } else {
-      toast.success('Password changed successfully!');
+      toast.success("Password changed successfully!");
       setPasswordModalOpen(false);
-      setPasswords({ current: '', new: '', confirm: '' });
+      setPasswords({ current: "", new: "", confirm: "" });
     }
 
     setIsSaving(false);
@@ -587,11 +690,12 @@ function SettingsContent() {
     const supabase = getSupabaseClient();
 
     // Fetch all user data
-    const [{ data: expenses }, { data: budgets }, { data: goals }] = await Promise.all([
-      supabase.from('expenses').select('*').eq('user_id', user.id),
-      supabase.from('budgets').select('*').eq('user_id', user.id),
-      supabase.from('goals').select('*').eq('user_id', user.id),
-    ]);
+    const [{ data: expenses }, { data: budgets }, { data: goals }] =
+      await Promise.all([
+        supabase.from("expenses").select("*").eq("user_id", user.id),
+        supabase.from("budgets").select("*").eq("user_id", user.id),
+        supabase.from("goals").select("*").eq("user_id", user.id),
+      ]);
 
     const exportData = {
       exported_at: new Date().toISOString(),
@@ -601,13 +705,15 @@ function SettingsContent() {
       goals: goals || [],
     };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `finance_tracker_export_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `finance_tracker_export_${new Date().toISOString().split("T")[0]}.json`;
     link.click();
 
-    toast.success('Data exported successfully!');
+    toast.success("Data exported successfully!");
   };
 
   const handleDeleteAccount = async () => {
@@ -618,15 +724,17 @@ function SettingsContent() {
 
     // Delete user data
     await Promise.all([
-      supabase.from('expenses').delete().eq('user_id', user.id),
-      supabase.from('budgets').delete().eq('user_id', user.id),
-      supabase.from('goals').delete().eq('user_id', user.id),
-      supabase.from('profiles').delete().eq('id', user.id),
+      supabase.from("expenses").delete().eq("user_id", user.id),
+      supabase.from("budgets").delete().eq("user_id", user.id),
+      supabase.from("goals").delete().eq("user_id", user.id),
+      supabase.from("profiles").delete().eq("id", user.id),
     ]);
 
     // Note: Deleting the auth user requires admin privileges
     // In a real app, you'd call a backend endpoint for this
-    toast.success('Account data deleted. Please contact support to complete account deletion.');
+    toast.success(
+      "Account data deleted. Please contact support to complete account deletion.",
+    );
     setIsDeleting(false);
     setDeleteModalOpen(false);
     signOut();
@@ -645,22 +753,34 @@ function SettingsContent() {
 
       <SettingsGrid>
         <SettingsCard>
-          <CardHeader title="Profile" subtitle="Update your personal information" />
+          <CardHeader
+            title="Profile"
+            subtitle="Update your personal information"
+          />
           <CardBody>
             <FormGroup>
               <Input
                 label="Full Name"
                 value={profile.full_name}
-                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, full_name: e.target.value })
+                }
                 placeholder="Your name"
                 fullWidth
               />
-              <Input label="Email" value={user?.email || ''} disabled fullWidth />
+              <Input
+                label="Email"
+                value={user?.email || ""}
+                disabled
+                fullWidth
+              />
               <Select
                 label="Currency"
                 options={CURRENCIES}
                 value={profile.currency}
-                onChange={(e) => setProfile({ ...profile, currency: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, currency: e.target.value })
+                }
                 fullWidth
               />
               <FormActions>
@@ -673,7 +793,10 @@ function SettingsContent() {
         </SettingsCard>
 
         <SettingsCard>
-          <CardHeader title="Preferences" subtitle="Customize your experience" />
+          <CardHeader
+            title="Preferences"
+            subtitle="Customize your experience"
+          />
           <CardBody>
             <SettingSection>
               <SettingRow>
@@ -684,14 +807,21 @@ function SettingsContent() {
                     <p>Switch between light and dark themes</p>
                   </SettingText>
                 </SettingInfo>
-                <ThemeToggle $isDark={isDark} onClick={toggleTheme} aria-label="Toggle dark mode" />
+                <ThemeToggle
+                  $isDark={isDark}
+                  onClick={toggleTheme}
+                  aria-label="Toggle dark mode"
+                />
               </SettingRow>
             </SettingSection>
           </CardBody>
         </SettingsCard>
 
         <SettingsCard>
-          <CardHeader title="Security" subtitle="Manage your account security" />
+          <CardHeader
+            title="Security"
+            subtitle="Manage your account security"
+          />
           <CardBody>
             <SettingSection>
               <SettingRow>
@@ -702,7 +832,10 @@ function SettingsContent() {
                     <p>Change your account password</p>
                   </SettingText>
                 </SettingInfo>
-                <Button variant="outline" onClick={() => setPasswordModalOpen(true)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setPasswordModalOpen(true)}
+                >
                   Change
                 </Button>
               </SettingRow>
@@ -722,7 +855,11 @@ function SettingsContent() {
                     <p>Download all your financial data</p>
                   </SettingText>
                 </SettingInfo>
-                <Button variant="outline" leftIcon={<Download size={16} />} onClick={handleExportData}>
+                <Button
+                  variant="outline"
+                  leftIcon={<Download size={16} />}
+                  onClick={handleExportData}
+                >
                   Export
                 </Button>
               </SettingRow>
@@ -730,145 +867,183 @@ function SettingsContent() {
           </CardBody>
         </SettingsCard>
 
-        <div ref={categoriesRef} style={{ gridColumn: '1 / -1' }}>
-        <CategoriesCard>
-          <CardHeader
-            title="Categories"
-            subtitle="Manage your expense and income categories"
-            action={
-              <Button
-                size="sm"
-                leftIcon={<Plus size={16} />}
-                onClick={() => {
-                  setEditingCategory(null);
-                  setCategoryModalOpen(true);
-                }}
-              >
-                Add Category
-              </Button>
-            }
-          />
-          <CardBody>
-            <CategoryTabs>
-              <CategoryTab
-                $isActive={categoryTab === 'expense'}
-                onClick={() => setCategoryTab('expense')}
-              >
-                Expenses
-              </CategoryTab>
-              <CategoryTab
-                $isActive={categoryTab === 'income'}
-                onClick={() => setCategoryTab('income')}
-              >
-                Income
-              </CategoryTab>
-            </CategoryTabs>
+        <FullWidthSection ref={categoriesRef}>
+          <CategoriesCard>
+            <CardHeader
+              title="Categories"
+              subtitle="Manage your expense and income categories"
+              action={
+                <Button
+                  size="sm"
+                  leftIcon={<Plus size={16} />}
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setCategoryModalOpen(true);
+                  }}
+                >
+                  Add Category
+                </Button>
+              }
+            />
+            <CardBody>
+              <CategoryTabs>
+                <CategoryTab
+                  $isActive={categoryTab === "expense"}
+                  onClick={() => setCategoryTab("expense")}
+                >
+                  Expenses
+                </CategoryTab>
+                <CategoryTab
+                  $isActive={categoryTab === "income"}
+                  onClick={() => setCategoryTab("income")}
+                >
+                  Income
+                </CategoryTab>
+              </CategoryTabs>
 
-            {categoriesLoading ? (
-              <Loader text="Loading categories..." />
-            ) : (
-              <>
-                {userCategories.length > 0 && (
-                  <>
-                    <CategoryMeta style={{ marginBottom: '12px' }}>Your Custom Categories</CategoryMeta>
-                    <CategoryList style={{ marginBottom: '24px' }}>
-                      {userCategories.map((category) => {
-                        const expenseCount = categoryExpenseCounts[category.id] || 0;
-                        return (
-                          <CategoryItem key={category.id} $color={category.color}>
-                            <CategoryItemInfo>
-                              <CategoryIcon $color={category.color}>{category.icon}</CategoryIcon>
-                              <CategoryDetails>
-                                <CategoryName>{category.name}</CategoryName>
-                                <CategoryMeta>
-                                  {expenseCount === 0
-                                    ? 'No expenses'
-                                    : `${expenseCount} expense${expenseCount !== 1 ? 's' : ''}`}
-                                </CategoryMeta>
-                              </CategoryDetails>
-                            </CategoryItemInfo>
-                            <CategoryActions>
-                              <IconButton onClick={() => handleEditCategory(category)}>
-                                <Edit2 size={16} />
-                              </IconButton>
-                              <IconButton $danger onClick={() => handleDeleteCategoryClick(category)}>
-                                <Trash2 size={16} />
-                              </IconButton>
-                            </CategoryActions>
-                          </CategoryItem>
-                        );
-                      })}
-                      <AddCategoryCard
+              {categoriesLoading ? (
+                <Loader text="Loading categories..." />
+              ) : (
+                <>
+                  {userCategories.length > 0 && (
+                    <>
+                      <CategoryMeta style={{ marginBottom: "12px" }}>
+                        Your Custom Categories
+                      </CategoryMeta>
+                      <CategoryList style={{ marginBottom: "24px" }}>
+                        {userCategories.map((category) => {
+                          const expenseCount =
+                            categoryExpenseCounts[category.id] || 0;
+                          return (
+                            <CategoryItem
+                              key={category.id}
+                              $color={category.color}
+                            >
+                              <CategoryItemInfo>
+                                <CategoryIcon $color={category.color}>
+                                  {category.icon}
+                                </CategoryIcon>
+                                <CategoryDetails>
+                                  <CategoryName>{category.name}</CategoryName>
+                                  <CategoryMeta>
+                                    {expenseCount === 0
+                                      ? "No expenses"
+                                      : `${expenseCount} expense${expenseCount !== 1 ? "s" : ""}`}
+                                  </CategoryMeta>
+                                </CategoryDetails>
+                              </CategoryItemInfo>
+                              <CategoryActions>
+                                <IconButton
+                                  onClick={() => handleEditCategory(category)}
+                                >
+                                  <Edit2 size={16} />
+                                </IconButton>
+                                <IconButton
+                                  $danger
+                                  onClick={() =>
+                                    handleDeleteCategoryClick(category)
+                                  }
+                                >
+                                  <Trash2 size={16} />
+                                </IconButton>
+                              </CategoryActions>
+                            </CategoryItem>
+                          );
+                        })}
+                        <AddCategoryCard
+                          onClick={() => {
+                            setEditingCategory(null);
+                            setCategoryModalOpen(true);
+                          }}
+                        >
+                          <Plus size={24} />
+                          <span>
+                            Add{" "}
+                            {categoryTab === "expense" ? "Expense" : "Income"}{" "}
+                            Category
+                          </span>
+                        </AddCategoryCard>
+                      </CategoryList>
+                    </>
+                  )}
+
+                  {userCategories.length === 0 && (
+                    <EmptyCategoryState>
+                      <Tag size={48} />
+                      <p>No custom {categoryTab} categories yet</p>
+                      <Button
+                        leftIcon={<Plus size={16} />}
                         onClick={() => {
                           setEditingCategory(null);
                           setCategoryModalOpen(true);
                         }}
                       >
-                        <Plus size={24} />
-                        <span>Add {categoryTab === 'expense' ? 'Expense' : 'Income'} Category</span>
-                      </AddCategoryCard>
-                    </CategoryList>
-                  </>
-                )}
+                        Create Your First Category
+                      </Button>
+                    </EmptyCategoryState>
+                  )}
 
-                {userCategories.length === 0 && (
-                  <EmptyCategoryState>
-                    <Tag size={48} />
-                    <p>No custom {categoryTab} categories yet</p>
-                    <Button
-                      leftIcon={<Plus size={16} />}
-                      onClick={() => {
-                        setEditingCategory(null);
-                        setCategoryModalOpen(true);
-                      }}
-                    >
-                      Create Your First Category
-                    </Button>
-                  </EmptyCategoryState>
-                )}
+                  {defaultCategories.length > 0 && (
+                    <>
+                      <CategoryMeta
+                        style={{
+                          marginBottom: "12px",
+                          marginTop: userCategories.length > 0 ? "0" : "24px",
+                        }}
+                      >
+                        Default Categories
+                      </CategoryMeta>
+                      <CategoryList>
+                        {defaultCategories.map((category) => {
+                          const expenseCount =
+                            categoryExpenseCounts[category.id] || 0;
+                          return (
+                            <CategoryItem
+                              key={category.id}
+                              $color={category.color}
+                            >
+                              <CategoryItemInfo>
+                                <CategoryIcon $color={category.color}>
+                                  {category.icon}
+                                </CategoryIcon>
+                                <CategoryDetails>
+                                  <CategoryName>{category.name}</CategoryName>
+                                  <CategoryMeta>
+                                    Default
+                                    {expenseCount > 0
+                                      ? ` · ${expenseCount} expense${expenseCount !== 1 ? "s" : ""}`
+                                      : ""}
+                                  </CategoryMeta>
+                                </CategoryDetails>
+                              </CategoryItemInfo>
+                            </CategoryItem>
+                          );
+                        })}
+                      </CategoryList>
+                    </>
+                  )}
+                </>
+              )}
+            </CardBody>
+          </CategoriesCard>
+        </FullWidthSection>
 
-                {defaultCategories.length > 0 && (
-                  <>
-                    <CategoryMeta style={{ marginBottom: '12px', marginTop: userCategories.length > 0 ? '0' : '24px' }}>
-                      Default Categories
-                    </CategoryMeta>
-                    <CategoryList>
-                      {defaultCategories.map((category) => {
-                        const expenseCount = categoryExpenseCounts[category.id] || 0;
-                        return (
-                          <CategoryItem key={category.id} $color={category.color}>
-                            <CategoryItemInfo>
-                              <CategoryIcon $color={category.color}>{category.icon}</CategoryIcon>
-                              <CategoryDetails>
-                                <CategoryName>{category.name}</CategoryName>
-                                <CategoryMeta>
-                                  Default{expenseCount > 0 ? ` · ${expenseCount} expense${expenseCount !== 1 ? 's' : ''}` : ''}
-                                </CategoryMeta>
-                              </CategoryDetails>
-                            </CategoryItemInfo>
-                          </CategoryItem>
-                        );
-                      })}
-                    </CategoryList>
-                  </>
-                )}
-              </>
-            )}
-          </CardBody>
-        </CategoriesCard>
-        </div>
-
-        <DangerZone style={{ gridColumn: '1 / -1' }}>
+        <DangerZone>
           <CardBody>
             <DangerHeader>
               <Trash2 size={20} />
               <h3>Danger Zone</h3>
             </DangerHeader>
             <DangerText>
-              Once you delete your account, there is no going back. All your data including expenses, budgets,
-              and goals will be permanently deleted.
+              Once you delete your account, there is no going back. All your
+              data including expenses, budgets, and goals will be permanently
+              deleted.
             </DangerText>
-            <Button variant="danger" leftIcon={<Trash2 size={16} />} onClick={() => setDeleteModalOpen(true)}>
+            <Button
+              variant="danger"
+              leftIcon={<Trash2 size={16} />}
+              onClick={() => setDeleteModalOpen(true)}
+            >
               Delete Account
             </Button>
           </CardBody>
@@ -876,13 +1051,19 @@ function SettingsContent() {
       </SettingsGrid>
 
       {/* Password Change Modal */}
-      <Modal isOpen={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} title="Change Password">
+      <Modal
+        isOpen={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+        title="Change Password"
+      >
         <ModalContent>
           <Input
             label="New Password"
             type="password"
             value={passwords.new}
-            onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+            onChange={(e) =>
+              setPasswords({ ...passwords, new: e.target.value })
+            }
             placeholder="Enter new password"
             fullWidth
           />
@@ -890,7 +1071,9 @@ function SettingsContent() {
             label="Confirm New Password"
             type="password"
             value={passwords.confirm}
-            onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+            onChange={(e) =>
+              setPasswords({ ...passwords, confirm: e.target.value })
+            }
             placeholder="Confirm new password"
             fullWidth
           />
@@ -906,17 +1089,25 @@ function SettingsContent() {
       </Modal>
 
       {/* Delete Account Modal */}
-      <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Delete Account">
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Delete Account"
+      >
         <ModalContent>
           <DangerText>
-            Are you sure you want to delete your account? This action cannot be undone and all your data will
-            be permanently lost.
+            Are you sure you want to delete your account? This action cannot be
+            undone and all your data will be permanently lost.
           </DangerText>
           <ModalActions>
             <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={handleDeleteAccount} isLoading={isDeleting}>
+            <Button
+              variant="danger"
+              onClick={handleDeleteAccount}
+              isLoading={isDeleting}
+            >
               Delete My Account
             </Button>
           </ModalActions>
@@ -947,18 +1138,28 @@ function SettingsContent() {
       >
         <ModalContent>
           <DangerText>
-            Are you sure you want to delete &ldquo;{categoryToDelete?.name}&rdquo;? This action cannot be undone.
-            {categoryToDelete && categoryExpenseCounts[categoryToDelete.id] > 0 && (
-              <>
-                <br /><br />
-                <strong>Warning:</strong> This category has {categoryExpenseCounts[categoryToDelete.id]} expense
-                {categoryExpenseCounts[categoryToDelete.id] !== 1 ? 's' : ''} associated with it.
-                You&apos;ll need to reassign these expenses to another category.
-              </>
-            )}
+            Are you sure you want to delete &ldquo;{categoryToDelete?.name}
+            &rdquo;? This action cannot be undone.
+            {categoryToDelete &&
+              categoryExpenseCounts[categoryToDelete.id] > 0 && (
+                <>
+                  <br />
+                  <br />
+                  <strong>Warning:</strong> This category has{" "}
+                  {categoryExpenseCounts[categoryToDelete.id]} expense
+                  {categoryExpenseCounts[categoryToDelete.id] !== 1
+                    ? "s"
+                    : ""}{" "}
+                  associated with it. You&apos;ll need to reassign these
+                  expenses to another category.
+                </>
+              )}
           </DangerText>
           <ModalActions>
-            <Button variant="ghost" onClick={() => setDeleteCategoryModalOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteCategoryModalOpen(false)}
+            >
               Cancel
             </Button>
             <Button variant="danger" onClick={handleDeleteCategory}>

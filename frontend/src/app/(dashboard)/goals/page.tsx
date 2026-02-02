@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { Plus, Trash2, Edit, Target, CheckCircle, PiggyBank, Clock } from 'lucide-react';
 
@@ -15,6 +15,81 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Loader } from '@/components/ui/Loader';
 import { GOAL_ICONS } from '@/lib/constants';
+
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+/**
+ * Goal status types
+ */
+type GoalStatus = 'active' | 'completed' | 'paused';
+
+/**
+ * Goal entity from the database
+ */
+interface Goal {
+  id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  deadline: string;
+  icon: string;
+  color: string;
+  status: GoalStatus;
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Goal form data for creating/editing goals
+ */
+interface GoalFormData {
+  name: string;
+  target_amount: string;
+  deadline: string;
+  icon: string;
+  color: string;
+}
+
+/**
+ * Contribution form data for adding to goals
+ */
+interface ContributionFormData {
+  amount: string;
+  note: string;
+}
+
+/**
+ * Props for styled ProgressFill component
+ */
+interface ProgressFillProps {
+  $progress: number;
+  $color: string;
+}
+
+/**
+ * Props for styled GoalIcon component
+ */
+interface GoalIconProps {
+  $color: string;
+}
+
+/**
+ * Props for styled ColorOption component
+ */
+interface ColorOptionProps {
+  $color: string;
+  $isSelected: boolean;
+}
+
+/**
+ * Props for styled IconOption component
+ */
+interface IconOptionProps {
+  $isSelected: boolean;
+}
 
 // Animation keyframes
 const fadeInUp = keyframes`
@@ -449,18 +524,7 @@ const Label = styled.label`
   margin-bottom: ${({ theme }) => theme.spacing.xs};
 `;
 
-const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#f59e0b', '#10b981', '#06b6d4'];
-
-interface Goal {
-  id: string;
-  name: string;
-  target_amount: number;
-  current_amount: number;
-  deadline: string;
-  icon: string;
-  color: string;
-  status: string;
-}
+const COLORS: string[] = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#f59e0b', '#10b981', '#06b6d4'];
 
 export default function GoalsPage() {
   const { user } = useAuth();
@@ -490,11 +554,7 @@ export default function GoalsPage() {
     color: '#6366f1',
   });
 
-  useEffect(() => {
-    fetchGoals();
-  }, [user]);
-
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
     if (!user) return;
 
     const supabase = getSupabaseClient();
@@ -506,7 +566,11 @@ export default function GoalsPage() {
 
     setGoals(data || []);
     setIsLoading(false);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
 
   const openModal = (goal?: Goal) => {
     if (goal) {

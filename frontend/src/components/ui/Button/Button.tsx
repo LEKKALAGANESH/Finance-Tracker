@@ -4,7 +4,7 @@ import { forwardRef, ButtonHTMLAttributes, ReactNode } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { Loader2 } from 'lucide-react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'danger-outline';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -119,14 +119,81 @@ const variantStyles = {
     color: ${({ theme }) => theme.colors.textInverse};
     border: none;
     box-shadow: ${({ theme }) => theme.shadows.error};
+    position: relative;
+
+    /* Pulsing attention indicator for destructive actions */
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(255, 255, 255, 0);
+      transition: background 0.2s ease;
+    }
 
     &:hover:not(:disabled) {
-      box-shadow: 0 8px 24px 0 rgba(239, 68, 68, 0.45);
+      box-shadow: 0 8px 24px 0 rgba(239, 68, 68, 0.5);
       transform: translateY(-2px);
+
+      &::before {
+        background: rgba(255, 255, 255, 0.1);
+      }
     }
 
     &:active:not(:disabled) {
       transform: translateY(0);
+      box-shadow: 0 2px 8px 0 rgba(239, 68, 68, 0.4);
+    }
+
+    /* Enhanced focus for accessibility - high contrast ring */
+    &:focus-visible {
+      outline: none;
+      box-shadow:
+        0 0 0 2px ${({ theme }) => theme.colors.surface},
+        0 0 0 4px ${({ theme }) => theme.colors.error},
+        ${({ theme }) => theme.shadows.error};
+    }
+  `,
+  'danger-outline': css`
+    background: transparent;
+    color: ${({ theme }) => theme.colors.error};
+    border: 1.5px solid ${({ theme }) => theme.colors.error};
+    position: relative;
+    overflow: hidden;
+
+    /* Subtle background on hover */
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: ${({ theme }) => theme.colors.errorLight};
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: ${({ theme }) => theme.colors.error};
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px 0 rgba(239, 68, 68, 0.2);
+
+      &::before {
+        opacity: 0.5;
+      }
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+
+      &::before {
+        opacity: 0.7;
+      }
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow:
+        0 0 0 2px ${({ theme }) => theme.colors.surface},
+        0 0 0 4px ${({ theme }) => theme.colors.error};
     }
   `,
 };
@@ -210,25 +277,61 @@ const StyledButton = styled.button<{
     `}
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none !important;
     box-shadow: none !important;
+    filter: grayscale(0.3);
   }
 
+  /* Default focus-visible for non-danger variants */
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primaryLight},
+    box-shadow:
+      0 0 0 2px ${({ theme }) => theme.colors.surface},
+      0 0 0 4px ${({ theme }) => theme.colors.primary},
       ${({ theme }) => theme.shadows.primary};
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::before,
+    &::after {
+      animation: none !important;
+    }
+  }
+
+  /* High contrast mode support */
+  @media (forced-colors: active) {
+    border: 2px solid currentColor;
+
+    &:focus-visible {
+      outline: 3px solid Highlight;
+      outline-offset: 2px;
+    }
   }
 
   /* Icon hover animation */
   svg {
     transition: transform 0.2s ease;
+    flex-shrink: 0;
   }
 
   &:hover:not(:disabled) svg {
     transform: scale(1.1);
+  }
+
+  /* Touch device optimization */
+  @media (hover: none) and (pointer: coarse) {
+    &:hover:not(:disabled) {
+      transform: none;
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.98);
+    }
   }
 `;
 

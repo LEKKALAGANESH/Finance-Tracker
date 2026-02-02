@@ -7,29 +7,52 @@ declare module 'styled-components' {
       primary: string;
       primaryHover: string;
       primaryLight: string;
+      primaryDark: string;
       // Secondary colors
       secondary: string;
       secondaryHover: string;
+      secondaryLight: string;
       // Status colors
       success: string;
+      successHover: string;
       successLight: string;
+      successDark: string;
       warning: string;
+      warningHover: string;
       warningLight: string;
+      warningDark: string;
       error: string;
+      errorHover: string;
       errorLight: string;
+      errorDark: string;
       info: string;
+      infoHover: string;
       infoLight: string;
+      infoDark: string;
       // Neutral colors
       background: string;
       surface: string;
       surfaceHover: string;
+      surfaceActive: string;
       border: string;
+      borderHover: string;
       borderDark: string;
+      borderFocus: string;
       // Text colors
       text: string;
       textSecondary: string;
       textMuted: string;
       textInverse: string;
+      textOnPrimary: string;
+      textOnSuccess: string;
+      textOnWarning: string;
+      textOnError: string;
+      // Focus ring colors
+      focusRing: string;
+      focusRingOffset: string;
+      // Overlay colors
+      overlay: string;
+      overlayStrong: string;
       // Category colors
       categoryFood: string;
       categoryTransport: string;

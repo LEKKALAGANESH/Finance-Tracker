@@ -1,23 +1,50 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import styled from 'styled-components';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Plus } from 'lucide-react';
-import Link from 'next/link';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft, Plus } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import styled from "styled-components";
 
-import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/context/ToastContext';
-import { getSupabaseClient } from '@/lib/supabase/client';
-import { expenseSchema, ExpenseFormData, CategoryFormData } from '@/lib/validations';
-import { PAYMENT_METHODS } from '@/lib/constants';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Card, CardHeader, CardBody, CardFooter } from '@/components/ui/Card';
-import { CategoryModal } from '@/components/categories/CategoryModal';
+import { CategoryModal } from "@/components/categories/CategoryModal";
+import { Button } from "@/components/ui/Button";
+import { Card, CardBody, CardFooter, CardHeader } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
+import { PAYMENT_METHODS } from "@/lib/constants";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import {
+  CategoryFormData,
+  ExpenseFormData,
+  expenseSchema,
+} from "@/lib/validations";
+
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  type: "expense" | "income";
+  user_id: string | null;
+  is_default: boolean;
+}
+
+interface CategoryOptionProps {
+  $isSelected: boolean;
+  $color: string;
+}
+
+interface FormFieldProps {
+  $fullWidth?: boolean;
+}
 
 const PageHeader = styled.div`
   display: flex;
@@ -43,7 +70,7 @@ const BackLink = styled(Link)`
 `;
 
 const Title = styled.h1`
-  font-size: ${({ theme }) => theme.typography.fontSize['2xl']};
+  font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
   font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   color: ${({ theme }) => theme.colors.text};
 `;
@@ -59,7 +86,7 @@ const FormGrid = styled.div`
 `;
 
 const FormField = styled.div<{ $fullWidth?: boolean }>`
-  ${({ $fullWidth }) => $fullWidth && 'grid-column: 1 / -1;'}
+  ${({ $fullWidth }) => $fullWidth && "grid-column: 1 / -1;"}
 `;
 
 const CategoryGrid = styled.div`
@@ -76,7 +103,8 @@ const CategoryOption = styled.button<{ $isSelected: boolean; $color: string }>`
   gap: ${({ theme }) => theme.spacing.xs};
   padding: ${({ theme }) => theme.spacing.md};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  border: 2px solid ${({ $isSelected, $color }) => ($isSelected ? $color : 'transparent')};
+  border: 2px solid
+    ${({ $isSelected, $color }) => ($isSelected ? $color : "transparent")};
   background: ${({ theme, $isSelected }) =>
     $isSelected ? theme.colors.surfaceHover : theme.colors.surface};
   transition: all 0.15s ease;
@@ -138,7 +166,8 @@ const AddCategoryButton = styled.button`
     border-color: ${({ theme }) => theme.colors.primary};
     background: ${({ theme }) => theme.colors.primaryLight};
 
-    svg, span {
+    svg,
+    span {
       color: ${({ theme }) => theme.colors.primary};
     }
   }
@@ -189,8 +218,13 @@ const CategorySkeleton = styled.div`
   animation: pulse 1.5s ease-in-out infinite;
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 `;
 
@@ -199,9 +233,9 @@ export default function AddExpensePage() {
   const { user } = useAuth();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const {
@@ -212,35 +246,35 @@ export default function AddExpensePage() {
   } = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
-      payment_method: 'cash',
+      date: new Date().toISOString().split("T")[0],
+      payment_method: "cash",
     },
   });
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!user) return;
     setCategoriesLoading(true);
     const supabase = getSupabaseClient();
     const { data } = await supabase
-      .from('categories')
-      .select('*')
+      .from("categories")
+      .select("*")
       .or(`user_id.eq.${user.id},and(user_id.is.null,is_default.eq.true)`)
-      .eq('type', 'expense')
-      .order('name');
+      .eq("type", "expense")
+      .order("name");
     setCategories(data || []);
     setCategoriesLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchCategories();
-  }, [user]);
+  }, [fetchCategories]);
 
   const handleCreateCategory = async (data: CategoryFormData) => {
     if (!user) return;
 
     const supabase = getSupabaseClient();
     const { data: newCategory, error } = await supabase
-      .from('categories')
+      .from("categories")
       .insert({
         user_id: user.id,
         name: data.name,
@@ -253,17 +287,17 @@ export default function AddExpensePage() {
       .single();
 
     if (error) {
-      toast.error('Failed to create category');
+      toast.error("Failed to create category");
       throw error;
     }
 
-    toast.success('Category created!');
+    toast.success("Category created!");
     await fetchCategories();
 
     // Auto-select the newly created category
     if (newCategory) {
       setSelectedCategory(newCategory.id);
-      setValue('category_id', newCategory.id);
+      setValue("category_id", newCategory.id);
     }
   };
 
@@ -273,7 +307,7 @@ export default function AddExpensePage() {
     setIsLoading(true);
     const supabase = getSupabaseClient();
 
-    const { error } = await supabase.from('expenses').insert({
+    const { error } = await supabase.from("expenses").insert({
       user_id: user.id,
       category_id: data.category_id,
       amount: data.amount,
@@ -283,18 +317,18 @@ export default function AddExpensePage() {
     });
 
     if (error) {
-      toast.error('Failed to add expense');
+      toast.error("Failed to add expense");
       setIsLoading(false);
       return;
     }
 
-    toast.success('Expense added successfully!');
-    router.push('/expenses');
+    toast.success("Expense added successfully!");
+    router.push("/expenses");
   };
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
-    setValue('category_id', categoryId);
+    setValue("category_id", categoryId);
   };
 
   return (
@@ -307,7 +341,10 @@ export default function AddExpensePage() {
       </PageHeader>
 
       <Card>
-        <CardHeader title="Expense Details" subtitle="Enter the details of your expense" />
+        <CardHeader
+          title="Expense Details"
+          subtitle="Enter the details of your expense"
+        />
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardBody>
             <FormGrid>
@@ -316,7 +353,7 @@ export default function AddExpensePage() {
                   <Label>Category</Label>
                   <ManageLink
                     type="button"
-                    onClick={() => router.push('/settings?tab=categories')}
+                    onClick={() => router.push("/settings?tab=categories")}
                   >
                     Manage Categories
                   </ManageLink>
@@ -364,7 +401,7 @@ export default function AddExpensePage() {
                   placeholder="0.00"
                   error={errors.amount?.message}
                   fullWidth
-                  {...register('amount', { valueAsNumber: true })}
+                  {...register("amount", { valueAsNumber: true })}
                 />
               </FormField>
 
@@ -374,7 +411,7 @@ export default function AddExpensePage() {
                   type="date"
                   error={errors.date?.message}
                   fullWidth
-                  {...register('date')}
+                  {...register("date")}
                 />
               </FormField>
 
@@ -384,7 +421,7 @@ export default function AddExpensePage() {
                   placeholder="What did you spend on?"
                   error={errors.description?.message}
                   fullWidth
-                  {...register('description')}
+                  {...register("description")}
                 />
               </FormField>
 
@@ -397,7 +434,7 @@ export default function AddExpensePage() {
                   }))}
                   error={errors.payment_method?.message}
                   fullWidth
-                  {...register('payment_method')}
+                  {...register("payment_method")}
                 />
               </FormField>
             </FormGrid>

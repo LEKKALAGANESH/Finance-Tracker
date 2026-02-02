@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import styled from "styled-components";
 
@@ -18,6 +18,55 @@ import { useToast } from "@/context/ToastContext";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { ExpenseFormData, expenseSchema } from "@/lib/validations";
+
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+/**
+ * Category entity from the database
+ */
+interface Category {
+  id: string;
+  user_id: string | null;
+  name: string;
+  icon: string;
+  color: string;
+  type: 'expense' | 'income';
+  is_default: boolean;
+  created_at?: string;
+}
+
+/**
+ * Expense entity from the database
+ */
+interface Expense {
+  id: string;
+  user_id: string;
+  category_id: string;
+  amount: number;
+  description: string;
+  date: string;
+  payment_method: string;
+  receipt_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Props for styled FormField component
+ */
+interface FormFieldProps {
+  $fullWidth?: boolean;
+}
+
+/**
+ * Props for styled CategoryOption component
+ */
+interface CategoryOptionProps {
+  $isSelected: boolean;
+  $color: string;
+}
 
 const PageHeader = styled.div`
   display: flex;
@@ -119,7 +168,7 @@ export default function EditExpensePage() {
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
 
   const {

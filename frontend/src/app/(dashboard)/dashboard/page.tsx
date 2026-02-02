@@ -4,8 +4,74 @@ import dynamic from "next/dynamic";
 import { Calendar, Plus, Target, TrendingDown, TrendingUp, Wallet, PiggyBank, Receipt, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import styled, { keyframes, css } from "styled-components";
+
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+interface DashboardStats {
+  totalSpent: number;
+  totalSaved: number;
+  monthlyBudget: number;
+  savingsGoal: number;
+  transactions: number;
+  trend: number;
+}
+
+interface TransactionCategory {
+  name: string;
+  icon: string;
+  color: string;
+}
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  type: 'expense' | 'savings';
+  category: TransactionCategory;
+}
+
+interface CategoryData {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface ExpenseWithCategory {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category_id: string;
+  category?: { name: string; icon: string; color: string };
+}
+
+interface ContributionWithGoal {
+  id: string;
+  amount: number;
+  date: string;
+  note: string;
+  goal?: { id: string; name: string; icon: string; color: string };
+}
+
+interface MonthOption {
+  value: string;
+  label: string;
+}
+
+interface BudgetProgressSegmentProps {
+  $width: number;
+  $color: string;
+  $delay?: number;
+}
+
+interface LegendColorProps {
+  $color: string;
+}
 
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -547,7 +613,7 @@ const QuickActions = styled.div`
   }
 `;
 
-const MONTHS = [
+const MONTHS: MonthOption[] = [
   { value: "all", label: "All Time" },
   { value: "1", label: "January" },
   { value: "2", label: "February" },
@@ -572,7 +638,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalSpent: 0,
     totalSaved: 0,
     monthlyBudget: 0,
@@ -580,8 +646,8 @@ export default function DashboardPage() {
     transactions: 0,
     trend: 0,
   });
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
 
   // Generate year options (last 5 years)
   const yearOptions = useMemo(() => {
@@ -709,24 +775,6 @@ export default function DashboardPage() {
           transactions: totalTransactions,
           trend,
         });
-
-        // Define types
-        type ExpenseWithCategory = {
-          id: string;
-          description: string;
-          amount: number;
-          date: string;
-          category_id: string;
-          category?: { name: string; icon: string; color: string };
-        };
-
-        type ContributionWithGoal = {
-          id: string;
-          amount: number;
-          date: string;
-          note: string;
-          goal?: { id: string; name: string; icon: string; color: string };
-        };
 
         // Combine expenses and contributions for recent transactions
         const expenseTransactions = (expenses || []).map((e: ExpenseWithCategory) => ({

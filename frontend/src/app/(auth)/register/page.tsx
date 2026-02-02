@@ -4,15 +4,55 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import styled from "styled-components";
 
+import { GoogleAuthError } from "@/components/auth/GoogleAuthError";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { AuthErrorInfo, isProviderConfigError } from "@/lib/auth-errors";
 import { RegisterFormData, registerSchema } from "@/lib/validations";
+
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+/**
+ * Props for the Google Icon SVG component
+ */
+interface GoogleIconProps {
+  className?: string;
+}
+
+/**
+ * Authentication state for the registration form
+ */
+interface RegisterState {
+  showPassword: boolean;
+  showConfirmPassword: boolean;
+  isLoading: boolean;
+  isGoogleLoading: boolean;
+  googleAuthError: AuthErrorInfo | null;
+}
+
+/**
+ * Result from sign-up operations
+ */
+interface SignUpResult {
+  error: Error | null;
+  friendlyMessage?: string;
+}
+
+/**
+ * Result from Google sign-in operations
+ */
+interface GoogleSignInResult {
+  error: Error | null;
+  errorInfo?: AuthErrorInfo;
+}
 
 const Form = styled.form`
   display: flex;
@@ -158,9 +198,22 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleAuthError, setGoogleAuthError] = useState<AuthErrorInfo | null>(null);
   const router = useRouter();
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, isGoogleAuthAvailable } = useAuth();
   const toast = useToast();
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDismissError = useCallback(() => {
+    setGoogleAuthError(null);
+  }, []);
+
+  const focusNameInput = useCallback(() => {
+    setGoogleAuthError(null);
+    setTimeout(() => {
+      nameInputRef.current?.focus();
+    }, 100);
+  }, []);
 
   const {
     register,
@@ -172,18 +225,19 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
+    setGoogleAuthError(null);
     try {
-      const { error } = await signUp(data.email, data.password, data.fullName);
+      const { error, friendlyMessage } = await signUp(data.email, data.password, data.fullName);
 
       if (error) {
-        toast.error(error.message || "Failed to create account");
+        toast.error(friendlyMessage || "Failed to create account");
         return;
       }
 
       toast.success("Account created! Please check your email to verify.");
       router.push("/login");
     } catch (err) {
-      toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -191,14 +245,23 @@ export default function RegisterPage() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    setGoogleAuthError(null);
     try {
-      const { error } = await signInWithGoogle();
+      const { error, errorInfo } = await signInWithGoogle();
       if (error) {
-        toast.error(error.message || "Failed to sign up with Google");
+        // For provider config errors, show the full error UI instead of just a toast
+        if (errorInfo && isProviderConfigError(error)) {
+          setGoogleAuthError(errorInfo);
+        } else if (errorInfo) {
+          // For other errors (like cancelled), show a toast with friendly message
+          toast.error(errorInfo.message);
+        } else {
+          toast.error("Failed to sign up with Google. Please try again.");
+        }
         setIsGoogleLoading(false);
       }
     } catch (err) {
-      toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred. Please try again.");
       setIsGoogleLoading(false);
     }
   };
@@ -207,6 +270,17 @@ export default function RegisterPage() {
     <>
       <Title>Create Account</Title>
       <Subtitle>Start your journey to financial freedom</Subtitle>
+
+      {/* Google Auth Error Alert */}
+      {googleAuthError && (
+        <GoogleAuthError
+          errorInfo={googleAuthError}
+          onRetry={googleAuthError.canRetry ? handleGoogleSignIn : undefined}
+          onDismiss={handleDismissError}
+          onUseEmail={googleAuthError.showEmailFallback ? focusNameInput : undefined}
+          isRetrying={isGoogleLoading}
+        />
+      )}
 
       <Form onSubmit={handleSubmit(onSubmit)}>
         <Input
@@ -217,6 +291,7 @@ export default function RegisterPage() {
           error={errors.fullName?.message}
           fullWidth
           {...register("fullName")}
+          ref={nameInputRef}
         />
 
         <Input
@@ -277,18 +352,23 @@ export default function RegisterPage() {
         </Terms>
       </Form>
 
-      <Divider>
-        <span>or</span>
-      </Divider>
+      {isGoogleAuthAvailable && (
+        <>
+          <Divider>
+            <span>or</span>
+          </Divider>
 
-      <GoogleButton
-        type="button"
-        onClick={handleGoogleSignIn}
-        disabled={isGoogleLoading || isLoading}
-      >
-        <GoogleIcon />
-        {isGoogleLoading ? "Connecting..." : "Continue with Google"}
-      </GoogleButton>
+          <GoogleButton
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isGoogleLoading || isLoading}
+            aria-label="Continue with Google"
+          >
+            <GoogleIcon />
+            {isGoogleLoading ? "Connecting..." : "Continue with Google"}
+          </GoogleButton>
+        </>
+      )}
 
       <Footer>
         Already have an account? <Link href="/login">Sign in</Link>

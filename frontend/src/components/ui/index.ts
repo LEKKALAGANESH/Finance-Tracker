@@ -18,6 +18,9 @@ export { Modal } from './Modal';
 // Loader
 export { Loader } from './Loader';
 
+// ProgressBar
+export { ProgressBar, CircularProgress } from './ProgressBar';
+
 // EmptyState
 export { EmptyState } from './EmptyState';
 

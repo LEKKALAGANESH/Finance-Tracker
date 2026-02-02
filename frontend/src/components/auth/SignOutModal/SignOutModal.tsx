@@ -1031,7 +1031,7 @@ export function SignOutModal({ isOpen, onClose }: SignOutModalProps) {
 
               <Title id="signout-title" $step={step}>Sign Out?</Title>
               <Description id="signout-description">
-                You're about to sign out of your account. Any unsaved changes will be lost.
+                You&apos;re about to sign out of your account. Any unsaved changes will be lost.
               </Description>
 
               <UserCard>
@@ -1118,7 +1118,7 @@ export function SignOutModal({ isOpen, onClose }: SignOutModalProps) {
                 <FarewellEmoji aria-hidden="true">👋</FarewellEmoji>
               </Title>
               <Description id="signout-description">
-                You've been signed out successfully. Thanks for using FinanceTracker!
+                You&apos;ve been signed out successfully. Thanks for using FinanceTracker!
               </Description>
 
               <SecurityBadge>
@@ -1141,7 +1141,7 @@ export function SignOutModal({ isOpen, onClose }: SignOutModalProps) {
 
               <Title id="signout-title" $step={step}>Sign Out Failed</Title>
               <Description id="signout-description">
-                We couldn't sign you out. Please check your connection and try again.
+                We couldn&apos;t sign you out. Please check your connection and try again.
               </Description>
 
               <SecurityBadge $variant="error">

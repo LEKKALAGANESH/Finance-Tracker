@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import Link from 'next/link';
 import { Plus, Search, Trash2, Edit, ChevronLeft, ChevronRight, Calendar, Receipt, TrendingUp, TrendingDown } from 'lucide-react';
@@ -663,12 +663,7 @@ export default function ExpensesPage() {
     return `${monthName} ${selectedYear}`;
   };
 
-  useEffect(() => {
-    fetchTransactions();
-    fetchCategories();
-  }, [user, page, categoryFilter, selectedMonth, selectedYear, transactionType]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!user) return;
     const supabase = getSupabaseClient();
     const { data } = await supabase
@@ -677,9 +672,9 @@ export default function ExpensesPage() {
       .or(`user_id.eq.${user.id},and(user_id.is.null,is_default.eq.true)`)
       .eq('type', 'expense');
     setCategories(data || []);
-  };
+  }, [user]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -788,7 +783,12 @@ export default function ExpensesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, page, categoryFilter, selectedMonth, selectedYear, transactionType, searchTerm]);
+
+  useEffect(() => {
+    fetchTransactions();
+    fetchCategories();
+  }, [fetchTransactions, fetchCategories]);
 
   const handleSearch = () => {
     setPage(1);

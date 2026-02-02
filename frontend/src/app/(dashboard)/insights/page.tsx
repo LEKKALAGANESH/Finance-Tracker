@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { Sparkles, Send, RefreshCw, Lightbulb, TrendingUp, AlertCircle, MessageSquare } from 'lucide-react';
 
@@ -12,6 +12,102 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
 import { Loader } from '@/components/ui/Loader';
+
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+/**
+ * Chat message role types
+ */
+type ChatRole = 'user' | 'assistant';
+
+/**
+ * Chat message in the AI conversation
+ */
+interface ChatMessage {
+  role: ChatRole;
+  content: string;
+  timestamp?: Date;
+}
+
+/**
+ * Expense data from the database
+ */
+interface ExpenseData {
+  amount: number;
+  category_id: string;
+  date: string;
+  description: string;
+  category?: {
+    name: string;
+    icon?: string;
+    color?: string;
+  };
+}
+
+/**
+ * Goal data from the database
+ */
+interface GoalData {
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  status: 'active' | 'completed' | 'paused';
+  deadline?: string;
+}
+
+/**
+ * Budget data from the database
+ */
+interface BudgetData {
+  amount: number;
+  category_id: string;
+  period: string;
+  spent?: number;
+}
+
+/**
+ * Monthly spending trend data
+ */
+interface MonthlyTrend {
+  month: string;
+  amount: number;
+}
+
+/**
+ * Aggregated financial data for insights generation
+ */
+interface FinancialData {
+  expenses: ExpenseData[];
+  goals: GoalData[];
+  budgets?: BudgetData[];
+  totalSpent: number;
+  totalBudget: number;
+  categorySpending: Record<string, number>;
+  sortedCategories: [string, number][];
+  monthlyTrend: MonthlyTrend[];
+}
+
+/**
+ * Insights page state
+ */
+interface InsightsState {
+  isLoading: boolean;
+  isGenerating: boolean;
+  tips: string[];
+  warnings: string[];
+  chatMessages: ChatMessage[];
+  currentQuestion: string;
+  financialData: FinancialData | null;
+}
+
+/**
+ * Props for styled ChatBubble component
+ */
+interface ChatBubbleProps {
+  $isUser: boolean;
+}
 
 const PageHeader = styled.div`
   display: flex;
@@ -279,35 +375,6 @@ const SuggestionChip = styled.button`
   }
 `;
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface ExpenseData {
-  amount: number;
-  category_id: string;
-  date: string;
-  description: string;
-  category?: { name: string };
-}
-
-interface GoalData {
-  name: string;
-  target_amount: number;
-  current_amount: number;
-  status: string;
-}
-
-interface FinancialData {
-  expenses: ExpenseData[];
-  goals: GoalData[];
-  totalSpent: number;
-  totalBudget: number;
-  categorySpending: Record<string, number>;
-  sortedCategories: [string, number][];
-  monthlyTrend: { month: string; amount: number }[];
-}
 
 export default function InsightsPage() {
   const { user } = useAuth();
@@ -324,15 +391,7 @@ export default function InsightsPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
 
-  useEffect(() => {
-    generateInsights();
-  }, [user]);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
-
-  const generateInsights = async () => {
+  const generateInsights = useCallback(async () => {
     if (!user) return;
 
     setIsGenerating(true);
@@ -468,7 +527,15 @@ export default function InsightsPage() {
 
     setIsLoading(false);
     setIsGenerating(false);
-  };
+  }, [user, formatCurrency]);
+
+  useEffect(() => {
+    generateInsights();
+  }, [generateInsights]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   const generateAIResponse = (question: string): string => {
     if (!financialData) {

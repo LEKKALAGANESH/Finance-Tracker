@@ -1,22 +1,22 @@
 "use client";
 
 import { AlertTriangle, Edit, Plus, Trash2, Wallet } from "lucide-react";
-import { useEffect, useState } from "react";
-import styled, { keyframes, css } from "styled-components";
+import { useCallback, useEffect, useState } from "react";
+import styled, { css, keyframes } from "styled-components";
 
+import { CategoryModal } from "@/components/categories/CategoryModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Loader } from "@/components/ui/Loader";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
-import { CategoryModal } from "@/components/categories/CategoryModal";
 import { useAuth } from "@/context/AuthContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useToast } from "@/context/ToastContext";
 import { BUDGET_PERIODS } from "@/lib/constants";
-import { CategoryFormData } from "@/lib/validations";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { CategoryFormData } from "@/lib/validations";
 
 // Animation keyframes
 const fadeInUp = keyframes`
@@ -42,7 +42,7 @@ const PageWrapper = styled.div`
   min-height: 100%;
 
   &::before {
-    content: '';
+    content: "";
     position: fixed;
     top: -15%;
     right: -8%;
@@ -58,7 +58,7 @@ const PageWrapper = styled.div`
   }
 
   &::after {
-    content: '';
+    content: "";
     position: fixed;
     bottom: -10%;
     left: -5%;
@@ -260,7 +260,7 @@ const ProgressFill = styled.div<{ $percentage: number; $isOver: boolean }>`
   overflow: hidden;
 
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -276,23 +276,27 @@ const ProgressFill = styled.div<{ $percentage: number; $isOver: boolean }>`
   }
 
   @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
   }
 `;
 
-const AlertBanner = styled.div<{ $variant?: 'warning' | 'error' }>`
+const AlertBanner = styled.div<{ $variant?: "warning" | "error" }>`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing.sm};
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   background: ${({ theme, $variant }) =>
-    $variant === 'error' ? theme.colors.errorLight : theme.colors.warningLight};
+    $variant === "error" ? theme.colors.errorLight : theme.colors.warningLight};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   margin-top: ${({ theme }) => theme.spacing.md};
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   color: ${({ theme, $variant }) =>
-    $variant === 'error' ? theme.colors.error : theme.colors.warning};
+    $variant === "error" ? theme.colors.error : theme.colors.warning};
 `;
 
 const EmptyState = styled.div`
@@ -407,7 +411,8 @@ const CategoryOption = styled.button<{ $isSelected: boolean; $color: string }>`
   gap: 4px;
   padding: ${({ theme }) => theme.spacing.sm};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  border: 2px solid ${({ $isSelected, $color }) => ($isSelected ? $color : 'transparent')};
+  border: 2px solid
+    ${({ $isSelected, $color }) => ($isSelected ? $color : "transparent")};
   background: ${({ theme, $isSelected }) =>
     $isSelected ? theme.colors.surfaceHover : theme.colors.surface};
   transition: all 0.15s ease;
@@ -437,7 +442,7 @@ const OverallBudgetOption = styled(CategoryOption)`
   background: ${({ theme, $isSelected }) =>
     $isSelected ? `${theme.colors.primary}15` : theme.colors.surface};
   border-color: ${({ theme, $isSelected }) =>
-    $isSelected ? theme.colors.primary : 'transparent'};
+    $isSelected ? theme.colors.primary : "transparent"};
 
   svg {
     color: ${({ theme }) => theme.colors.primary};
@@ -461,7 +466,8 @@ const AddCategoryButton = styled.button`
     border-color: ${({ theme }) => theme.colors.primary};
     background: ${({ theme }) => theme.colors.primaryLight};
 
-    svg, span {
+    svg,
+    span {
       color: ${({ theme }) => theme.colors.primary};
     }
   }
@@ -581,19 +587,42 @@ const LegendText = styled.span`
   color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  type: "expense" | "income";
+  user_id: string | null;
+  is_default: boolean;
+}
+
+interface BudgetCategory {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
 interface Budget {
   id: string;
   category_id: string | null;
   amount: number;
   period: string;
   alert_threshold: number;
-  category?: {
-    id: string;
-    name: string;
-    icon: string;
-    color: string;
-  };
+  category?: BudgetCategory;
   spent?: number;
+}
+
+interface BudgetFormData {
+  category_id: string;
+  amount: string;
+  period: string;
+  alert_threshold: string;
 }
 
 export default function BudgetsPage() {
@@ -602,7 +631,7 @@ export default function BudgetsPage() {
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
@@ -611,18 +640,14 @@ export default function BudgetsPage() {
   const [totalSaved, setTotalSaved] = useState(0);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BudgetFormData>({
     category_id: "",
     amount: "",
     period: "monthly",
     alert_threshold: "80",
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return;
 
     const supabase = getSupabaseClient();
@@ -645,8 +670,12 @@ export default function BudgetsPage() {
 
     // Fetch this month's savings (contributions)
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split("T")[0];
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split("T")[0];
 
     const { data: contributions } = await supabase
       .from("goal_contributions")
@@ -655,7 +684,11 @@ export default function BudgetsPage() {
       .gte("date", monthStart)
       .lte("date", monthEnd);
 
-    const savedAmount = contributions?.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0) || 0;
+    const savedAmount =
+      contributions?.reduce(
+        (sum: number, c: { amount: number }) => sum + c.amount,
+        0,
+      ) || 0;
     setTotalSaved(savedAmount);
 
     // Calculate spent for each budget based on its period
@@ -666,7 +699,7 @@ export default function BudgetsPage() {
       let endDate: Date;
 
       switch (period) {
-        case 'weekly':
+        case "weekly":
           // Start from Sunday of current week
           const dayOfWeek = today.getDay();
           startDate = new Date(today);
@@ -675,11 +708,11 @@ export default function BudgetsPage() {
           endDate = new Date(startDate);
           endDate.setDate(startDate.getDate() + 6);
           break;
-        case 'yearly':
+        case "yearly":
           startDate = new Date(today.getFullYear(), 0, 1);
           endDate = new Date(today.getFullYear(), 11, 31);
           break;
-        case 'monthly':
+        case "monthly":
         default:
           startDate = new Date(today.getFullYear(), today.getMonth(), 1);
           endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -687,8 +720,8 @@ export default function BudgetsPage() {
       }
 
       return {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0],
+        start: startDate.toISOString().split("T")[0],
+        end: endDate.toISOString().split("T")[0],
       };
     };
 
@@ -731,7 +764,11 @@ export default function BudgetsPage() {
 
     setBudgets(budgetsWithSpent);
     setIsLoading(false);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const fetchCategories = async () => {
     if (!user) return;
@@ -858,273 +895,315 @@ export default function BudgetsPage() {
   return (
     <PageWrapper>
       <PageContent>
-      <PageHeader>
-        <PageTitle>
-          <PageTitleIcon><Wallet size={20} /></PageTitleIcon>
-          <h1>Budgets</h1>
-        </PageTitle>
-        <Button leftIcon={<Plus size={18} />} onClick={() => openModal()}>
-          Create Budget
-        </Button>
-      </PageHeader>
+        <PageHeader>
+          <PageTitle>
+            <PageTitleIcon>
+              <Wallet size={20} />
+            </PageTitleIcon>
+            <h1>Budgets</h1>
+          </PageTitle>
+          <Button leftIcon={<Plus size={18} />} onClick={() => openModal()}>
+            Create Budget
+          </Button>
+        </PageHeader>
 
-      {/* Budget Overview Summary */}
-      {budgets.length > 0 && (() => {
-        const totalBudget = budgets
-          .filter(b => b.period === 'monthly')
-          .reduce((sum, b) => sum + b.amount, 0);
-        const totalSpent = budgets
-          .filter(b => b.period === 'monthly')
-          .reduce((sum, b) => sum + (b.spent || 0), 0);
-        const totalUsed = totalSpent + totalSaved;
-        const remaining = Math.max(0, totalBudget - totalUsed);
-        const overBudget = totalUsed > totalBudget;
+        {/* Budget Overview Summary */}
+        {budgets.length > 0 &&
+          (() => {
+            const totalBudget = budgets
+              .filter((b) => b.period === "monthly")
+              .reduce((sum, b) => sum + b.amount, 0);
+            const totalSpent = budgets
+              .filter((b) => b.period === "monthly")
+              .reduce((sum, b) => sum + (b.spent || 0), 0);
+            const totalUsed = totalSpent + totalSaved;
+            const remaining = Math.max(0, totalBudget - totalUsed);
+            const overBudget = totalUsed > totalBudget;
 
-        const spentPercent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-        const savedPercent = totalBudget > 0 ? (totalSaved / totalBudget) * 100 : 0;
-        const remainingPercent = totalBudget > 0 ? (remaining / totalBudget) * 100 : 0;
-
-        return (
-          <BudgetOverviewCard>
-            <OverviewHeader>
-              <h3>
-                <Wallet size={20} />
-                Monthly Budget Overview
-              </h3>
-            </OverviewHeader>
-
-            <OverviewStats>
-              <OverviewStat $color="#6366f1">
-                <span>Total Budget</span>
-                <span>{formatCurrency(totalBudget)}</span>
-              </OverviewStat>
-              <OverviewStat $color="#ef4444">
-                <span>Total Spent</span>
-                <span>{formatCurrency(totalSpent)}</span>
-              </OverviewStat>
-              <OverviewStat $color="#10b981">
-                <span>Total Saved</span>
-                <span>{formatCurrency(totalSaved)}</span>
-              </OverviewStat>
-              <OverviewStat $color={overBudget ? "#f59e0b" : "#6b7280"}>
-                <span>{overBudget ? "Over Budget" : "Remaining"}</span>
-                <span>{overBudget ? `-${formatCurrency(totalUsed - totalBudget)}` : formatCurrency(remaining)}</span>
-              </OverviewStat>
-            </OverviewStats>
-
-            {totalBudget > 0 && (
-              <>
-                <OverviewProgressBar>
-                  <OverviewProgressSegment $width={spentPercent} $color="#ef4444" />
-                  <OverviewProgressSegment $width={savedPercent} $color="#10b981" />
-                  <OverviewProgressSegment $width={remainingPercent} $color="#d1d5db" />
-                </OverviewProgressBar>
-
-                <OverviewLegend>
-                  <LegendItem>
-                    <LegendColor $color="#ef4444" />
-                    <LegendText>Spent ({spentPercent.toFixed(0)}%)</LegendText>
-                  </LegendItem>
-                  <LegendItem>
-                    <LegendColor $color="#10b981" />
-                    <LegendText>Saved ({savedPercent.toFixed(0)}%)</LegendText>
-                  </LegendItem>
-                  <LegendItem>
-                    <LegendColor $color="#d1d5db" />
-                    <LegendText>Remaining ({remainingPercent.toFixed(0)}%)</LegendText>
-                  </LegendItem>
-                </OverviewLegend>
-              </>
-            )}
-          </BudgetOverviewCard>
-        );
-      })()}
-
-      <BudgetGrid>
-        {budgets.length === 0 ? (
-          <EmptyState>
-            <EmptyStateIcon>💰</EmptyStateIcon>
-            <h3>No Budgets Yet</h3>
-            <p>Create your first budget to start tracking your spending and stay on top of your finances.</p>
-            <Button leftIcon={<Plus size={18} />} onClick={() => openModal()}>
-              Create Your First Budget
-            </Button>
-          </EmptyState>
-        ) : (
-          budgets.map((budget, index) => {
-            const percentage =
-              budget.amount > 0
-                ? ((budget.spent || 0) / budget.amount) * 100
-                : 0;
-            const isOver = percentage > 100;
-            const isNearLimit = percentage >= budget.alert_threshold;
+            const spentPercent =
+              totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+            const savedPercent =
+              totalBudget > 0 ? (totalSaved / totalBudget) * 100 : 0;
+            const remainingPercent =
+              totalBudget > 0 ? (remaining / totalBudget) * 100 : 0;
 
             return (
-              <BudgetCard key={budget.id} $index={index}>
-                <CardBody>
-                  <BudgetHeader>
-                    <BudgetInfo>
-                      <CategoryIcon
-                        $color={budget.category?.color || "#6366f1"}
-                      >
-                        {budget.category?.icon || "💰"}
-                      </CategoryIcon>
-                      <BudgetDetails>
-                        <h3>{budget.category?.name || "Overall Budget"}</h3>
-                        <p>{budget.period}</p>
-                      </BudgetDetails>
-                    </BudgetInfo>
-                    <Actions>
-                      <IconButton onClick={() => openModal(budget)} aria-label="Edit budget">
-                        <Edit size={18} />
-                      </IconButton>
-                      <IconButton
-                        className="danger"
-                        onClick={() => handleDelete(budget.id)}
-                        aria-label="Delete budget"
-                      >
-                        <Trash2 size={18} />
-                      </IconButton>
-                    </Actions>
-                  </BudgetHeader>
+              <BudgetOverviewCard>
+                <OverviewHeader>
+                  <h3>
+                    <Wallet size={20} />
+                    Monthly Budget Overview
+                  </h3>
+                </OverviewHeader>
 
-                  <ProgressSection>
-                    <ProgressHeader>
-                      <ProgressLabel>
-                        {formatCurrency(budget.spent || 0)} of{" "}
-                        {formatCurrency(budget.amount)}
-                      </ProgressLabel>
-                      <ProgressAmount>{percentage.toFixed(0)}%</ProgressAmount>
-                    </ProgressHeader>
-                    <ProgressBar>
-                      <ProgressFill $percentage={percentage} $isOver={isOver} />
-                    </ProgressBar>
-                  </ProgressSection>
-
-                  <RemainingBudget $isOver={isOver}>
-                    <span>{isOver ? 'Over budget:' : 'Remaining:'}</span>
+                <OverviewStats>
+                  <OverviewStat $color="#6366f1">
+                    <span>Total Budget</span>
+                    <span>{formatCurrency(totalBudget)}</span>
+                  </OverviewStat>
+                  <OverviewStat $color="#ef4444">
+                    <span>Total Spent</span>
+                    <span>{formatCurrency(totalSpent)}</span>
+                  </OverviewStat>
+                  <OverviewStat $color="#10b981">
+                    <span>Total Saved</span>
+                    <span>{formatCurrency(totalSaved)}</span>
+                  </OverviewStat>
+                  <OverviewStat $color={overBudget ? "#f59e0b" : "#6b7280"}>
+                    <span>{overBudget ? "Over Budget" : "Remaining"}</span>
                     <span>
-                      {isOver
-                        ? formatCurrency((budget.spent || 0) - budget.amount)
-                        : formatCurrency(budget.amount - (budget.spent || 0))}
+                      {overBudget
+                        ? `-${formatCurrency(totalUsed - totalBudget)}`
+                        : formatCurrency(remaining)}
                     </span>
-                  </RemainingBudget>
+                  </OverviewStat>
+                </OverviewStats>
 
-                  {isNearLimit && !isOver && (
-                    <AlertBanner>
-                      <AlertTriangle size={16} />
-                      Approaching budget limit ({percentage.toFixed(0)}% used)
-                    </AlertBanner>
-                  )}
-                  {isOver && (
-                    <AlertBanner $variant="error">
-                      <AlertTriangle size={16} />
-                      Budget exceeded by {(percentage - 100).toFixed(0)}%
-                    </AlertBanner>
-                  )}
-                </CardBody>
-              </BudgetCard>
+                {totalBudget > 0 && (
+                  <>
+                    <OverviewProgressBar>
+                      <OverviewProgressSegment
+                        $width={spentPercent}
+                        $color="#ef4444"
+                      />
+                      <OverviewProgressSegment
+                        $width={savedPercent}
+                        $color="#10b981"
+                      />
+                      <OverviewProgressSegment
+                        $width={remainingPercent}
+                        $color="#d1d5db"
+                      />
+                    </OverviewProgressBar>
+
+                    <OverviewLegend>
+                      <LegendItem>
+                        <LegendColor $color="#ef4444" />
+                        <LegendText>
+                          Spent ({spentPercent.toFixed(0)}%)
+                        </LegendText>
+                      </LegendItem>
+                      <LegendItem>
+                        <LegendColor $color="#10b981" />
+                        <LegendText>
+                          Saved ({savedPercent.toFixed(0)}%)
+                        </LegendText>
+                      </LegendItem>
+                      <LegendItem>
+                        <LegendColor $color="#d1d5db" />
+                        <LegendText>
+                          Remaining ({remainingPercent.toFixed(0)}%)
+                        </LegendText>
+                      </LegendItem>
+                    </OverviewLegend>
+                  </>
+                )}
+              </BudgetOverviewCard>
             );
-          })
-        )}
-      </BudgetGrid>
+          })()}
 
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingBudget ? "Edit Budget" : "Create Budget"}
-      >
-        <ModalForm>
-          <div>
-            <CategorySelectorLabel>Category (optional)</CategorySelectorLabel>
-            {categoriesLoading ? (
-              <CategorySelectLoading>Loading categories...</CategorySelectLoading>
-            ) : (
-              <CategoryGrid>
-                <OverallBudgetOption
-                  type="button"
-                  $isSelected={formData.category_id === ""}
-                  $color="#6366f1"
-                  onClick={() => setFormData({ ...formData, category_id: "" })}
-                >
-                  <Wallet size={20} />
-                  <span>All Categories</span>
-                </OverallBudgetOption>
-                {categories.map((category) => (
-                  <CategoryOption
-                    key={category.id}
+        <BudgetGrid>
+          {budgets.length === 0 ? (
+            <EmptyState>
+              <EmptyStateIcon>💰</EmptyStateIcon>
+              <h3>No Budgets Yet</h3>
+              <p>
+                Create your first budget to start tracking your spending and
+                stay on top of your finances.
+              </p>
+              <Button leftIcon={<Plus size={18} />} onClick={() => openModal()}>
+                Create Your First Budget
+              </Button>
+            </EmptyState>
+          ) : (
+            budgets.map((budget, index) => {
+              const percentage =
+                budget.amount > 0
+                  ? ((budget.spent || 0) / budget.amount) * 100
+                  : 0;
+              const isOver = percentage > 100;
+              const isNearLimit = percentage >= budget.alert_threshold;
+
+              return (
+                <BudgetCard key={budget.id} $index={index}>
+                  <CardBody>
+                    <BudgetHeader>
+                      <BudgetInfo>
+                        <CategoryIcon
+                          $color={budget.category?.color || "#6366f1"}
+                        >
+                          {budget.category?.icon || "💰"}
+                        </CategoryIcon>
+                        <BudgetDetails>
+                          <h3>{budget.category?.name || "Overall Budget"}</h3>
+                          <p>{budget.period}</p>
+                        </BudgetDetails>
+                      </BudgetInfo>
+                      <Actions>
+                        <IconButton
+                          onClick={() => openModal(budget)}
+                          aria-label="Edit budget"
+                        >
+                          <Edit size={18} />
+                        </IconButton>
+                        <IconButton
+                          className="danger"
+                          onClick={() => handleDelete(budget.id)}
+                          aria-label="Delete budget"
+                        >
+                          <Trash2 size={18} />
+                        </IconButton>
+                      </Actions>
+                    </BudgetHeader>
+
+                    <ProgressSection>
+                      <ProgressHeader>
+                        <ProgressLabel>
+                          {formatCurrency(budget.spent || 0)} of{" "}
+                          {formatCurrency(budget.amount)}
+                        </ProgressLabel>
+                        <ProgressAmount>
+                          {percentage.toFixed(0)}%
+                        </ProgressAmount>
+                      </ProgressHeader>
+                      <ProgressBar>
+                        <ProgressFill
+                          $percentage={percentage}
+                          $isOver={isOver}
+                        />
+                      </ProgressBar>
+                    </ProgressSection>
+
+                    <RemainingBudget $isOver={isOver}>
+                      <span>{isOver ? "Over budget:" : "Remaining:"}</span>
+                      <span>
+                        {isOver
+                          ? formatCurrency((budget.spent || 0) - budget.amount)
+                          : formatCurrency(budget.amount - (budget.spent || 0))}
+                      </span>
+                    </RemainingBudget>
+
+                    {isNearLimit && !isOver && (
+                      <AlertBanner>
+                        <AlertTriangle size={16} />
+                        Approaching budget limit ({percentage.toFixed(0)}% used)
+                      </AlertBanner>
+                    )}
+                    {isOver && (
+                      <AlertBanner $variant="error">
+                        <AlertTriangle size={16} />
+                        Budget exceeded by {(percentage - 100).toFixed(0)}%
+                      </AlertBanner>
+                    )}
+                  </CardBody>
+                </BudgetCard>
+              );
+            })
+          )}
+        </BudgetGrid>
+
+        <Modal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title={editingBudget ? "Edit Budget" : "Create Budget"}
+        >
+          <ModalForm>
+            <div>
+              <CategorySelectorLabel>Category (optional)</CategorySelectorLabel>
+              {categoriesLoading ? (
+                <CategorySelectLoading>
+                  Loading categories...
+                </CategorySelectLoading>
+              ) : (
+                <CategoryGrid>
+                  <OverallBudgetOption
                     type="button"
-                    $isSelected={formData.category_id === category.id}
-                    $color={category.color}
-                    onClick={() => setFormData({ ...formData, category_id: category.id })}
+                    $isSelected={formData.category_id === ""}
+                    $color="#6366f1"
+                    onClick={() =>
+                      setFormData({ ...formData, category_id: "" })
+                    }
                   >
-                    <span>{category.icon}</span>
-                    <span>{category.name}</span>
-                  </CategoryOption>
-                ))}
-                <AddCategoryButton
-                  type="button"
-                  onClick={() => setCategoryModalOpen(true)}
-                >
-                  <Plus size={18} />
-                  <span>Add New</span>
-                </AddCategoryButton>
-              </CategoryGrid>
-            )}
-          </div>
-          <Input
-            label="Budget Amount"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            value={formData.amount}
-            onChange={(e) =>
-              setFormData({ ...formData, amount: e.target.value })
-            }
-            fullWidth
-          />
-          <Select
-            label="Period"
-            options={BUDGET_PERIODS.map((p) => ({
-              value: p.value,
-              label: p.label,
-            }))}
-            value={formData.period}
-            onChange={(e) =>
-              setFormData({ ...formData, period: e.target.value })
-            }
-            fullWidth
-          />
-          <Input
-            label="Alert Threshold (%)"
-            type="number"
-            min="1"
-            max="100"
-            value={formData.alert_threshold}
-            onChange={(e) =>
-              setFormData({ ...formData, alert_threshold: e.target.value })
-            }
-            hint="Get notified when spending reaches this percentage"
-            fullWidth
-          />
-          <ModalActions>
-            <Button variant="ghost" onClick={() => setModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} isLoading={isSaving}>
-              {editingBudget ? "Save Changes" : "Create Budget"}
-            </Button>
-          </ModalActions>
-        </ModalForm>
-      </Modal>
+                    <Wallet size={20} />
+                    <span>All Categories</span>
+                  </OverallBudgetOption>
+                  {categories.map((category) => (
+                    <CategoryOption
+                      key={category.id}
+                      type="button"
+                      $isSelected={formData.category_id === category.id}
+                      $color={category.color}
+                      onClick={() =>
+                        setFormData({ ...formData, category_id: category.id })
+                      }
+                    >
+                      <span>{category.icon}</span>
+                      <span>{category.name}</span>
+                    </CategoryOption>
+                  ))}
+                  <AddCategoryButton
+                    type="button"
+                    onClick={() => setCategoryModalOpen(true)}
+                  >
+                    <Plus size={18} />
+                    <span>Add New</span>
+                  </AddCategoryButton>
+                </CategoryGrid>
+              )}
+            </div>
+            <Input
+              label="Budget Amount"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={formData.amount}
+              onChange={(e) =>
+                setFormData({ ...formData, amount: e.target.value })
+              }
+              fullWidth
+            />
+            <Select
+              label="Period"
+              options={BUDGET_PERIODS.map((p) => ({
+                value: p.value,
+                label: p.label,
+              }))}
+              value={formData.period}
+              onChange={(e) =>
+                setFormData({ ...formData, period: e.target.value })
+              }
+              fullWidth
+            />
+            <Input
+              label="Alert Threshold (%)"
+              type="number"
+              min="1"
+              max="100"
+              value={formData.alert_threshold}
+              onChange={(e) =>
+                setFormData({ ...formData, alert_threshold: e.target.value })
+              }
+              hint="Get notified when spending reaches this percentage"
+              fullWidth
+            />
+            <ModalActions>
+              <Button variant="ghost" onClick={() => setModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} isLoading={isSaving}>
+                {editingBudget ? "Save Changes" : "Create Budget"}
+              </Button>
+            </ModalActions>
+          </ModalForm>
+        </Modal>
 
-      <CategoryModal
-        isOpen={categoryModalOpen}
-        onClose={() => setCategoryModalOpen(false)}
-        onSave={handleCreateCategory}
-        type="expense"
-      />
+        <CategoryModal
+          isOpen={categoryModalOpen}
+          onClose={() => setCategoryModalOpen(false)}
+          onSave={handleCreateCategory}
+          type="expense"
+        />
       </PageContent>
     </PageWrapper>
   );

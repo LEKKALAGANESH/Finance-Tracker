@@ -1,34 +1,131 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { Download } from 'lucide-react';
+import { Download } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import styled from "styled-components";
 
-import { useAuth } from '@/context/AuthContext';
-import { useCurrency } from '@/context/CurrencyContext';
-import { useToast } from '@/context/ToastContext';
-import { getSupabaseClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
-import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { Loader } from '@/components/ui/Loader';
+import { Button } from "@/components/ui/Button";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { Loader } from "@/components/ui/Loader";
+import { Select } from "@/components/ui/Select";
+import { useAuth } from "@/context/AuthContext";
+import { useCurrency } from "@/context/CurrencyContext";
+import { useToast } from "@/context/ToastContext";
+import { getSupabaseClient } from "@/lib/supabase/client";
+
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+/**
+ * Category spending data for pie chart and table
+ */
+interface CategoryDataItem {
+  name: string;
+  value: number;
+  color: string;
+  icon: string;
+  percentage?: number;
+}
+
+/**
+ * Daily spending data for bar chart
+ */
+interface DailyDataItem {
+  day: string;
+  spent: number;
+  saved: number;
+}
+
+/**
+ * Monthly trend data for line chart
+ */
+interface MonthlyTrendItem {
+  month: string;
+  spent: number;
+  saved: number;
+}
+
+/**
+ * Category entity from database
+ */
+interface CategoryInfo {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+/**
+ * Expense record from database with category
+ */
+interface ExpenseRecord {
+  id: string;
+  user_id: string;
+  amount: number;
+  date: string;
+  description: string;
+  payment_method: string;
+  category_id: string;
+  category?: CategoryInfo;
+  created_at?: string;
+}
+
+/**
+ * Report summary statistics
+ */
+interface ReportSummary {
+  totalSpent: number;
+  averageDaily: number;
+  transactionCount: number;
+  topCategory: string;
+}
+
+/**
+ * Month option for filter dropdown
+ */
+interface MonthOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Year option for filter dropdown
+ */
+interface YearOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Custom tooltip props for Recharts
+ */
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    name: string;
+    color?: string;
+  }>;
+  label?: string;
+}
 
 // Import recharts components directly - tree shaking handles bundle optimization
 import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
   Bar,
-  LineChart,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
   Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
+} from "recharts";
 
 const PageHeader = styled.div`
   display: flex;
@@ -39,7 +136,7 @@ const PageHeader = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
 
   h1 {
-    font-size: ${({ theme }) => theme.typography.fontSize['2xl']};
+    font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
 
@@ -111,7 +208,7 @@ const StatCard = styled.div`
   }
 
   p {
-    font-size: ${({ theme }) => theme.typography.fontSize['2xl']};
+    font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
   }
@@ -203,7 +300,7 @@ const PercentageBar = styled.div<{ $percentage: number; $color: string }>`
   min-width: 100px;
 
   &::after {
-    content: '';
+    content: "";
     display: block;
     height: 100%;
     width: ${({ $percentage }) => Math.min($percentage, 100)}%;
@@ -212,22 +309,31 @@ const PercentageBar = styled.div<{ $percentage: number; $color: string }>`
   }
 `;
 
-const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+const COLORS = [
+  "#6366f1",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#ec4899",
+  "#14b8a6",
+  "#f97316",
+];
 
 const MONTHS = [
-  { value: 'all', label: 'All Time' },
-  { value: '1', label: 'January' },
-  { value: '2', label: 'February' },
-  { value: '3', label: 'March' },
-  { value: '4', label: 'April' },
-  { value: '5', label: 'May' },
-  { value: '6', label: 'June' },
-  { value: '7', label: 'July' },
-  { value: '8', label: 'August' },
-  { value: '9', label: 'September' },
-  { value: '10', label: 'October' },
-  { value: '11', label: 'November' },
-  { value: '12', label: 'December' },
+  { value: "all", label: "All Time" },
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
 ];
 
 export default function ReportsPage() {
@@ -235,30 +341,30 @@ export default function ReportsPage() {
   const { currency, formatCurrency } = useCurrency();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState(
+    (new Date().getMonth() + 1).toString(),
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    new Date().getFullYear().toString(),
+  );
 
   const [stats, setStats] = useState({
     totalSpent: 0,
     totalSaved: 0,
     avgPerDay: 0,
     transactions: 0,
-    topCategory: '',
+    topCategory: "",
   });
-  const [categoryData, setCategoryData] = useState<any[]>([]);
-  const [dailyData, setDailyData] = useState<any[]>([]);
-  const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryDataItem[]>([]);
+  const [dailyData, setDailyData] = useState<DailyDataItem[]>([]);
+  const [monthlyTrend, setMonthlyTrend] = useState<MonthlyTrendItem[]>([]);
 
   const years = Array.from({ length: 5 }, (_, i) => {
     const year = new Date().getFullYear() - i;
     return { value: year.toString(), label: year.toString() };
   });
 
-  useEffect(() => {
-    fetchReportData();
-  }, [user, selectedMonth, selectedYear]);
-
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     if (!user) return;
 
     setIsLoading(true);
@@ -270,34 +376,36 @@ export default function ReportsPage() {
       let endDate: string | null = null;
       let daysInPeriod = 30; // Default for average calculation
 
-      if (selectedMonth !== 'all') {
+      if (selectedMonth !== "all") {
         const month = parseInt(selectedMonth);
         const year = parseInt(selectedYear);
-        startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-        endDate = new Date(year, month, 0).toISOString().split('T')[0];
+        startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
+        endDate = new Date(year, month, 0).toISOString().split("T")[0];
         daysInPeriod = new Date(year, month, 0).getDate();
       }
 
       // Build expense query
       let expenseQuery = supabase
-        .from('expenses')
-        .select('*, category:categories(id, name, icon, color)')
-        .eq('user_id', user.id)
-        .order('date', { ascending: true });
+        .from("expenses")
+        .select("*, category:categories(id, name, icon, color)")
+        .eq("user_id", user.id)
+        .order("date", { ascending: true });
 
       if (startDate && endDate) {
-        expenseQuery = expenseQuery.gte('date', startDate).lte('date', endDate);
+        expenseQuery = expenseQuery.gte("date", startDate).lte("date", endDate);
       }
 
       // Build contributions query
       let contributionsQuery = supabase
-        .from('goal_contributions')
-        .select('*, goal:goals(id, name, icon, color)')
-        .eq('user_id', user.id)
-        .order('date', { ascending: true });
+        .from("goal_contributions")
+        .select("*, goal:goals(id, name, icon, color)")
+        .eq("user_id", user.id)
+        .order("date", { ascending: true });
 
       if (startDate && endDate) {
-        contributionsQuery = contributionsQuery.gte('date', startDate).lte('date', endDate);
+        contributionsQuery = contributionsQuery
+          .gte("date", startDate)
+          .lte("date", endDate);
       }
 
       // Fetch both expenses and contributions
@@ -324,36 +432,58 @@ export default function ReportsPage() {
       };
 
       // Calculate stats
-      const totalSpent = expenses?.reduce((sum: number, e: ExpenseData) => sum + e.amount, 0) || 0;
-      const totalSaved = contributions?.reduce((sum: number, c: ContributionData) => sum + c.amount, 0) || 0;
+      const totalSpent =
+        expenses?.reduce((sum: number, e: ExpenseData) => sum + e.amount, 0) ||
+        0;
+      const totalSaved =
+        contributions?.reduce(
+          (sum: number, c: ContributionData) => sum + c.amount,
+          0,
+        ) || 0;
 
       // For all time, calculate days since first transaction
-      if (selectedMonth === 'all' && expenses && expenses.length > 0) {
+      if (selectedMonth === "all" && expenses && expenses.length > 0) {
         const firstDate = new Date(expenses[0].date);
         const today = new Date();
-        daysInPeriod = Math.max(1, Math.ceil((today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
+        daysInPeriod = Math.max(
+          1,
+          Math.ceil(
+            (today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24),
+          ),
+        );
       }
 
       const avgPerDay = totalSpent / daysInPeriod;
 
       // Category breakdown for expenses
-      const categoryTotals: Record<string, { name: string; value: number; color: string; icon: string }> = {};
+      const categoryTotals: Record<
+        string,
+        { name: string; value: number; color: string; icon: string }
+      > = {};
       (expenses || []).forEach((e: ExpenseData) => {
-        const catId = e.category_id || 'other';
-        const catName = e.category?.name || 'Other';
-        const catColor = e.category?.color || '#6b7280';
-        const catIcon = e.category?.icon || '📦';
+        const catId = e.category_id || "other";
+        const catName = e.category?.name || "Other";
+        const catColor = e.category?.color || "#6b7280";
+        const catIcon = e.category?.icon || "📦";
 
         if (!categoryTotals[catId]) {
-          categoryTotals[catId] = { name: catName, value: 0, color: catColor, icon: catIcon };
+          categoryTotals[catId] = {
+            name: catName,
+            value: 0,
+            color: catColor,
+            icon: catIcon,
+          };
         }
         categoryTotals[catId].value += e.amount;
       });
 
-      const sortedCategories = Object.values(categoryTotals).sort((a, b) => b.value - a.value);
-      const topCategory = sortedCategories[0]?.name || 'N/A';
+      const sortedCategories = Object.values(categoryTotals).sort(
+        (a, b) => b.value - a.value,
+      );
+      const topCategory = sortedCategories[0]?.name || "N/A";
 
-      const totalTransactions = (expenses?.length || 0) + (contributions?.length || 0);
+      const totalTransactions =
+        (expenses?.length || 0) + (contributions?.length || 0);
 
       setStats({
         totalSpent,
@@ -363,15 +493,21 @@ export default function ReportsPage() {
         topCategory,
       });
 
-      setCategoryData(sortedCategories.map((c, i) => ({ ...c, color: c.color || COLORS[i % COLORS.length] })));
+      setCategoryData(
+        sortedCategories.map((c, i) => ({
+          ...c,
+          color: c.color || COLORS[i % COLORS.length],
+        })),
+      );
 
       // Daily spending data (only for specific month, not all time)
-      if (selectedMonth !== 'all') {
+      if (selectedMonth !== "all") {
         const month = parseInt(selectedMonth);
         const year = parseInt(selectedYear);
         const daysInMonth = new Date(year, month, 0).getDate();
 
-        const dailyTotals: Record<string, { spent: number; saved: number }> = {};
+        const dailyTotals: Record<string, { spent: number; saved: number }> =
+          {};
         (expenses || []).forEach((e: ExpenseData) => {
           const day = new Date(e.date).getDate().toString();
           if (!dailyTotals[day]) dailyTotals[day] = { spent: 0, saved: 0 };
@@ -395,48 +531,68 @@ export default function ReportsPage() {
 
       // Monthly trend (last 6 months from selected or current month)
       const trendData = [];
-      const baseMonth = selectedMonth === 'all' ? new Date().getMonth() + 1 : parseInt(selectedMonth);
+      const baseMonth =
+        selectedMonth === "all"
+          ? new Date().getMonth() + 1
+          : parseInt(selectedMonth);
       const baseYear = parseInt(selectedYear);
 
       for (let i = 5; i >= 0; i--) {
         const trendDate = new Date(baseYear, baseMonth - 1 - i, 1);
-        const trendStart = trendDate.toISOString().split('T')[0];
-        const trendEnd = new Date(trendDate.getFullYear(), trendDate.getMonth() + 1, 0)
+        const trendStart = trendDate.toISOString().split("T")[0];
+        const trendEnd = new Date(
+          trendDate.getFullYear(),
+          trendDate.getMonth() + 1,
+          0,
+        )
           .toISOString()
-          .split('T')[0];
+          .split("T")[0];
 
-        const [monthExpensesResult, monthContributionsResult] = await Promise.all([
-          supabase
-            .from('expenses')
-            .select('amount')
-            .eq('user_id', user.id)
-            .gte('date', trendStart)
-            .lte('date', trendEnd),
-          supabase
-            .from('goal_contributions')
-            .select('amount')
-            .eq('user_id', user.id)
-            .gte('date', trendStart)
-            .lte('date', trendEnd),
-        ]);
+        const [monthExpensesResult, monthContributionsResult] =
+          await Promise.all([
+            supabase
+              .from("expenses")
+              .select("amount")
+              .eq("user_id", user.id)
+              .gte("date", trendStart)
+              .lte("date", trendEnd),
+            supabase
+              .from("goal_contributions")
+              .select("amount")
+              .eq("user_id", user.id)
+              .gte("date", trendStart)
+              .lte("date", trendEnd),
+          ]);
 
-        const monthSpent = monthExpensesResult.data?.reduce((sum: number, e: { amount: number }) => sum + e.amount, 0) || 0;
-        const monthSaved = monthContributionsResult.data?.reduce((sum: number, c: { amount: number }) => sum + c.amount, 0) || 0;
+        const monthSpent =
+          monthExpensesResult.data?.reduce(
+            (sum: number, e: { amount: number }) => sum + e.amount,
+            0,
+          ) || 0;
+        const monthSaved =
+          monthContributionsResult.data?.reduce(
+            (sum: number, c: { amount: number }) => sum + c.amount,
+            0,
+          ) || 0;
 
         trendData.push({
-          month: trendDate.toLocaleString('default', { month: 'short' }),
+          month: trendDate.toLocaleString("default", { month: "short" }),
           spent: monthSpent,
           saved: monthSaved,
         });
       }
       setMonthlyTrend(trendData);
     } catch (error) {
-      console.error('Error fetching report data:', error);
-      toast.error('Failed to load report data');
+      console.error("Error fetching report data:", error);
+      toast.error("Failed to load report data");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, selectedMonth, selectedYear, toast]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
 
   const exportToCSV = async () => {
     if (!user) return;
@@ -444,19 +600,19 @@ export default function ReportsPage() {
     const supabase = getSupabaseClient();
     const month = parseInt(selectedMonth);
     const year = parseInt(selectedYear);
-    const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+    const startDate = new Date(year, month - 1, 1).toISOString().split("T")[0];
+    const endDate = new Date(year, month, 0).toISOString().split("T")[0];
 
     const { data: expenses } = await supabase
-      .from('expenses')
-      .select('*, category:categories(name)')
-      .eq('user_id', user.id)
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: true });
+      .from("expenses")
+      .select("*, category:categories(name)")
+      .eq("user_id", user.id)
+      .gte("date", startDate)
+      .lte("date", endDate)
+      .order("date", { ascending: true });
 
     if (!expenses || expenses.length === 0) {
-      toast.error('No data to export');
+      toast.error("No data to export");
       return;
     }
 
@@ -468,24 +624,33 @@ export default function ReportsPage() {
       category?: { name: string };
     };
 
-    const headers = ['Date', 'Category', 'Description', 'Amount', 'Payment Method'];
+    const headers = [
+      "Date",
+      "Category",
+      "Description",
+      "Amount",
+      "Payment Method",
+    ];
     const rows = expenses.map((e: ExportExpense) => [
       e.date,
-      e.category?.name || 'Other',
+      e.category?.name || "Other",
       e.description,
       e.amount.toFixed(2),
       e.payment_method,
     ]);
 
-    const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((r: string[]) => r.join(",")),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `expenses_${year}_${month.toString().padStart(2, '0')}.csv`;
+    link.download = `expenses_${year}_${month.toString().padStart(2, "0")}.csv`;
     link.click();
 
-    toast.success('Report exported successfully!');
+    toast.success("Report exported successfully!");
   };
 
   if (isLoading) {
@@ -518,7 +683,9 @@ export default function ReportsPage() {
           <h3>Total Spent</h3>
           <p>{formatCurrency(stats.totalSpent)}</p>
           <span>
-            {selectedMonth === 'all' ? 'All Time' : `${MONTHS.find((m) => m.value === selectedMonth)?.label} ${selectedYear}`}
+            {selectedMonth === "all"
+              ? "All Time"
+              : `${MONTHS.find((m) => m.value === selectedMonth)?.label} ${selectedYear}`}
           </span>
         </StatCard>
         <StatCard>
@@ -554,14 +721,18 @@ export default function ReportsPage() {
                     paddingAngle={2}
                     dataKey="value"
                     nameKey="name"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
                     labelLine={false}
                   >
                     {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -576,8 +747,13 @@ export default function ReportsPage() {
                 <LineChart data={monthlyTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="month" stroke="#9ca3af" />
-                  <YAxis stroke="#9ca3af" tickFormatter={(value) => `${currency.symbol}${value}`} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <YAxis
+                    stroke="#9ca3af"
+                    tickFormatter={(value) => `${currency.symbol}${value}`}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
                   <Legend />
                   <Line
                     type="monotone"
@@ -585,7 +761,7 @@ export default function ReportsPage() {
                     name="Spent"
                     stroke="#ef4444"
                     strokeWidth={3}
-                    dot={{ fill: '#ef4444', strokeWidth: 2 }}
+                    dot={{ fill: "#ef4444", strokeWidth: 2 }}
                   />
                   <Line
                     type="monotone"
@@ -593,7 +769,7 @@ export default function ReportsPage() {
                     name="Saved"
                     stroke="#10b981"
                     strokeWidth={3}
-                    dot={{ fill: '#10b981', strokeWidth: 2 }}
+                    dot={{ fill: "#10b981", strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -602,7 +778,7 @@ export default function ReportsPage() {
         </Card>
       </ChartsGrid>
 
-      {selectedMonth !== 'all' && dailyData.length > 0 && (
+      {selectedMonth !== "all" && dailyData.length > 0 && (
         <FullWidthChart>
           <CardHeader title="Daily Activity" />
           <CardBody>
@@ -611,11 +787,26 @@ export default function ReportsPage() {
                 <BarChart data={dailyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="day" stroke="#9ca3af" />
-                  <YAxis stroke="#9ca3af" tickFormatter={(value) => `${currency.symbol}${value}`} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <YAxis
+                    stroke="#9ca3af"
+                    tickFormatter={(value) => `${currency.symbol}${value}`}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
                   <Legend />
-                  <Bar dataKey="spent" name="Spent" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="saved" name="Saved" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="spent"
+                    name="Spent"
+                    fill="#ef4444"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="saved"
+                    name="Saved"
+                    fill="#10b981"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -638,19 +829,27 @@ export default function ReportsPage() {
               </thead>
               <tbody>
                 {categoryData.map((category) => {
-                  const percentage = stats.totalSpent > 0 ? (category.value / stats.totalSpent) * 100 : 0;
+                  const percentage =
+                    stats.totalSpent > 0
+                      ? (category.value / stats.totalSpent) * 100
+                      : 0;
                   return (
                     <tr key={category.name}>
                       <td>
                         <CategoryCell>
-                          <CategoryIcon $color={category.color}>{category.icon}</CategoryIcon>
+                          <CategoryIcon $color={category.color}>
+                            {category.icon}
+                          </CategoryIcon>
                           {category.name}
                         </CategoryCell>
                       </td>
                       <td>{formatCurrency(category.value)}</td>
                       <td>{percentage.toFixed(1)}%</td>
                       <td>
-                        <PercentageBar $percentage={percentage} $color={category.color} />
+                        <PercentageBar
+                          $percentage={percentage}
+                          $color={category.color}
+                        />
                       </td>
                     </tr>
                   );
