@@ -67,12 +67,14 @@ This error occurs when Google OAuth is not enabled in Supabase. Follow Step 2 to
 ### "redirect_uri_mismatch"
 
 This error occurs when the redirect URI doesn't match what's configured in Google Cloud Console. Ensure:
+
 - The Supabase callback URL is added to Google's authorized redirect URIs
 - The format is exactly: `https://<project-ref>.supabase.co/auth/v1/callback`
 
 ### "access_denied"
 
 This can occur when:
+
 - The user cancelled the sign-in process
 - The app is in testing mode and the user is not added as a test user
 - Required scopes are not properly configured

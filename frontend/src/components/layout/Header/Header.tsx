@@ -1,7 +1,7 @@
 'use client';
 
 import styled, { keyframes } from 'styled-components';
-import { Menu, Sun, Moon, Bell, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Wallet, Sun, Moon, Bell, User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -40,9 +40,22 @@ const HeaderContainer = styled.header`
   top: 0;
   z-index: 99;
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.xl};
+    height: 72px;
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.lg};
+    height: 64px;
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
     padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
-    height: 60px;
+    height: 58px;
   }
 `;
 
@@ -52,30 +65,153 @@ const LeftSection = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
 `;
 
-const MenuButton = styled.button`
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: ${({ theme }) => theme.borderRadius.lg};
-  color: ${({ theme }) => theme.colors.textSecondary};
-  transition: all 0.2s ease;
+const logoGlow = keyframes`
+  0%, 100% { box-shadow: 0 0 20px rgba(91, 91, 247, 0.4); }
+  50% { box-shadow: 0 0 30px rgba(91, 91, 247, 0.6); }
+`;
 
-  &:hover {
-    background: ${({ theme }) => theme.colors.surfaceHover};
-    color: ${({ theme }) => theme.colors.text};
+const BrandContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+
+  /* Hide on laptop/desktop when sidebar is visible */
+  @media (min-width: 1024px) {
+    display: none;
   }
 
-  @media (max-width: 768px) {
-    display: flex;
+  /* Tablet */
+  @media (max-width: 1023px) {
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    gap: ${({ theme }) => theme.spacing.xs};
   }
 `;
 
-const PageTitle = styled.h1`
-  font-size: ${({ theme }) => theme.typography.fontSize.lg};
-  font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
-  color: ${({ theme }) => theme.colors.text};
+const LogoIcon = styled.div`
+  width: 42px;
+  height: 42px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  background: ${({ theme }) => theme.gradients.primary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: ${({ theme }) => theme.shadows.primary};
+  position: relative;
+  animation: ${logoGlow} 3s ease-in-out infinite;
+
+  svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Tablet - larger premium look */
+  @media (max-width: 1023px) {
+    width: 46px;
+    height: 46px;
+    border-radius: ${({ theme }) => theme.borderRadius.xl};
+
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 40px;
+    height: 40px;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    width: 36px;
+    height: 36px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+`;
+
+const BrandName = styled.h1`
+  font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  background: ${({ theme }) => theme.gradients.primary};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: ${({ theme }) => theme.gradients.primary};
+    border-radius: ${({ theme }) => theme.borderRadius.full};
+    opacity: 0.6;
+  }
+
+  /* Tablet - larger premium look */
+  @media (max-width: 1023px) {
+    font-size: 1.5rem;
+    letter-spacing: -0.03em;
+
+    &::after {
+      height: 3px;
+      bottom: -5px;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.lg};
+
+    &::after {
+      height: 2px;
+      bottom: -3px;
+    }
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.base};
+    letter-spacing: -0.01em;
+
+    &::after {
+      height: 2px;
+      bottom: -2px;
+      opacity: 0.5;
+    }
+  }
+`;
+
+const PageTitle = styled.span`
+  font-size: ${({ theme }) => theme.typography.fontSize.base};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  color: ${({ theme }) => theme.colors.textSecondary};
+  padding-left: ${({ theme }) => theme.spacing.md};
+  border-left: 1px solid ${({ theme }) => theme.colors.border}60;
+  margin-left: ${({ theme }) => theme.spacing.sm};
 
   @media (max-width: 768px) {
     display: none;
@@ -87,8 +223,19 @@ const RightSection = styled.div`
   align-items: center;
   gap: ${({ theme }) => theme.spacing.md};
 
-  @media (max-width: 480px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
     gap: ${({ theme }) => theme.spacing.sm};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    gap: 6px;
   }
 `;
 
@@ -108,6 +255,8 @@ const IconButton = styled.button<{ $isActive?: boolean }>`
 
   svg {
     transition: all 0.3s ease;
+    width: 20px;
+    height: 20px;
   }
 
   &:hover {
@@ -126,9 +275,39 @@ const IconButton = styled.button<{ $isActive?: boolean }>`
     transform: translateY(0);
   }
 
+  /* Tablet - larger touch targets */
+  @media (max-width: 1023px) {
+    width: 46px;
+    height: 46px;
+    border-radius: ${({ theme }) => theme.borderRadius.xl};
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 40px;
+    height: 40px;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
+    border-radius: ${({ theme }) => theme.borderRadius.lg};
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
   }
 `;
 
@@ -178,6 +357,31 @@ const NotificationBadge = styled.span`
     opacity: 0.3;
     animation: ${pulse} 2s ease-in-out infinite;
   }
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    top: 10px;
+    right: 10px;
+    width: 11px;
+    height: 11px;
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    top: 7px;
+    right: 7px;
+    width: 9px;
+    height: 9px;
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-width: 1.5px;
+  }
 `;
 
 const UserMenuContainer = styled.div`
@@ -204,11 +408,42 @@ const UserButton = styled.button<{ $isOpen: boolean }>`
     transition: transform 0.2s ease;
     transform: ${({ $isOpen }) => ($isOpen ? 'rotate(180deg)' : 'rotate(0)')};
     color: ${({ theme }) => theme.colors.textMuted};
+    width: 16px;
+    height: 16px;
   }
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    padding: 8px 14px 8px 8px;
+    gap: ${({ theme }) => theme.spacing.md};
+    border-radius: ${({ theme }) => theme.borderRadius.xl};
+
+    svg.chevron {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    padding: 5px 10px 5px 5px;
+    gap: ${({ theme }) => theme.spacing.sm};
+
+    svg.chevron {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
     padding: 4px 8px 4px 4px;
-    gap: ${({ theme }) => theme.spacing.xs};
+    gap: 4px;
+
+    svg.chevron {
+      width: 12px;
+      height: 12px;
+    }
   }
 `;
 
@@ -225,9 +460,24 @@ const Avatar = styled.div`
   font-size: ${({ theme }) => theme.typography.fontSize.sm};
   box-shadow: ${({ theme }) => theme.shadows.primary};
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    width: 38px;
+    height: 38px;
+    font-size: ${({ theme }) => theme.typography.fontSize.base};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 32px;
+    height: 32px;
+    font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     font-size: ${({ theme }) => theme.typography.fontSize.xs};
   }
 `;
@@ -238,7 +488,8 @@ const UserInfo = styled.div`
   align-items: flex-start;
   margin-right: ${({ theme }) => theme.spacing.xs};
 
-  @media (max-width: 640px) {
+  /* Hide on mobile and smaller */
+  @media (max-width: 767px) {
     display: none;
   }
 `;
@@ -365,58 +616,82 @@ const Divider = styled.div`
   margin: ${({ theme }) => theme.spacing.sm} 0;
 `;
 
-const logoutPulse = keyframes`
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+const logoutShimmer = keyframes`
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 `;
 
-const LogoutItem = styled(DropdownItem)`
-  color: ${({ theme }) => theme.colors.error};
+const LogoutItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing.md};
+  width: 100%;
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
   position: relative;
   overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Premium gradient background */
+  background: ${({ theme }) => theme.gradients.primary};
+  color: white;
+  box-shadow: 0 4px 14px rgba(91, 91, 247, 0.3);
 
   svg {
-    color: ${({ theme }) => theme.colors.error};
-    transition: transform 0.2s ease;
+    color: white;
+    transition: transform 0.3s ease;
   }
 
+  /* Shimmer effect overlay */
   &::before {
     content: '';
     position: absolute;
     top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, ${({ theme }) => theme.colors.error}10, transparent);
-    transition: left 0.3s ease;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.25),
+      transparent
+    );
+    background-size: 200% 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
   &:hover {
-    background: ${({ theme }) => theme.colors.errorLight};
-    color: ${({ theme }) => theme.colors.error};
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(91, 91, 247, 0.4);
 
     svg {
-      color: ${({ theme }) => theme.colors.error};
-      animation: ${logoutPulse} 0.5s ease;
+      transform: translateX(2px);
     }
 
     &::before {
-      left: 100%;
+      opacity: 1;
+      animation: ${logoutShimmer} 1.5s ease infinite;
     }
   }
 
+  &:active {
+    transform: translateY(0);
+  }
+
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.colors.error};
-    outline-offset: -2px;
+    outline: 2px solid ${({ theme }) => theme.colors.primary};
+    outline-offset: 2px;
   }
 `;
 
 interface HeaderProps {
   title?: string;
-  onMenuClick?: () => void;
 }
 
-export function Header({ title, onMenuClick }: HeaderProps) {
+export function Header({ title }: HeaderProps) {
   const { user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -445,9 +720,12 @@ export function Header({ title, onMenuClick }: HeaderProps) {
   return (
     <HeaderContainer>
       <LeftSection>
-        <MenuButton onClick={onMenuClick} aria-label="Toggle menu">
-          <Menu size={20} />
-        </MenuButton>
+        <BrandContainer>
+          <LogoIcon>
+            <Wallet />
+          </LogoIcon>
+          <BrandName>FinanceTracker</BrandName>
+        </BrandContainer>
         {title && <PageTitle>{title}</PageTitle>}
       </LeftSection>
 

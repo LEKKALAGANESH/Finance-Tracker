@@ -11,6 +11,7 @@ import {
   Sparkles,
   LucideIcon,
 } from 'lucide-react';
+import { useNavigation } from '@/context/NavigationContext';
 
 interface NavItem {
   href: string;
@@ -57,7 +58,7 @@ const NavContainer = styled.nav`
   display: none;
   animation: ${slideUp} 0.3s ease forwards;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023px) {
     display: block;
   }
 `;
@@ -186,6 +187,7 @@ const ActiveDot = styled.div<{ $isActive: boolean }>`
 
 export function BottomNavBar() {
   const pathname = usePathname();
+  const { navigateTo } = useNavigation();
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -206,6 +208,10 @@ export function BottomNavBar() {
                   href={item.href}
                   $isActive={active}
                   aria-current={active ? 'page' : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigateTo(item.href);
+                  }}
                 >
                   <IconWrapper $isActive={active}>
                     <item.icon />
@@ -226,7 +232,7 @@ const BottomNavSpacerStyled = styled.div`
   display: none;
   height: calc(64px + env(safe-area-inset-bottom, 0));
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023px) {
     display: block;
   }
 `;

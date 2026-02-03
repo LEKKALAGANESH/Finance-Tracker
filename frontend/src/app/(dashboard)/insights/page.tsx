@@ -11,7 +11,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardBody } from '@/components/ui/Card';
-import { Loader } from '@/components/ui/Loader';
+import { usePageLoading } from '@/context/NavigationContext';
 
 // ============================================================================
 // TypeScript Interfaces
@@ -113,14 +113,14 @@ const PageHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.md};
 
   h1 {
     display: flex;
     align-items: center;
-    gap: ${({ theme }) => theme.spacing.sm};
+    gap: ${({ theme }) => theme.spacing.md};
     font-size: ${({ theme }) => theme.typography.fontSize['2xl']};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
@@ -128,16 +128,56 @@ const PageHeader = styled.div`
     svg {
       color: ${({ theme }) => theme.colors.primary};
     }
+
+    /* Tablet */
+    @media (max-width: 1023px) {
+      font-size: 1.875rem;
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.xl};
+      gap: ${({ theme }) => theme.spacing.sm};
+    }
+
+    /* Small Mobile */
+    @media (max-width: 480px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.lg};
+    }
+  }
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
   }
 `;
 
 const ContentGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: ${({ theme }) => theme.spacing.lg};
+  gap: ${({ theme }) => theme.spacing.xl};
 
-  @media (max-width: 1024px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
     grid-template-columns: 1fr;
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    gap: ${({ theme }) => theme.spacing.md};
   }
 `;
 
@@ -381,6 +421,10 @@ export default function InsightsPage() {
   const { formatCurrency } = useCurrency();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync loading state with global navigation loader
+  usePageLoading(isLoading);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [summary, setSummary] = useState('');
@@ -897,7 +941,7 @@ export default function InsightsPage() {
   };
 
   if (isLoading) {
-    return <Loader fullScreen text="Generating insights..." />;
+    return null;
   }
 
   return (

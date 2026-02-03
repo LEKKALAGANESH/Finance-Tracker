@@ -8,11 +8,11 @@ import { CategoryModal } from "@/components/categories/CategoryModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Loader } from "@/components/ui/Loader";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/context/AuthContext";
 import { useCurrency } from "@/context/CurrencyContext";
+import { usePageLoading } from "@/context/NavigationContext";
 import { useToast } from "@/context/ToastContext";
 import { BUDGET_PERIODS } from "@/lib/constants";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -93,9 +93,23 @@ const PageHeader = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   ${staggeredAnimation(0)}
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
 
     button {
       width: 100%;
@@ -106,15 +120,26 @@ const PageHeader = styled.div`
 const PageTitle = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
+  gap: ${({ theme }) => theme.spacing.md};
 
   h1 {
     font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
 
-    @media (max-width: 480px) {
+    /* Tablet */
+    @media (max-width: 1023px) {
+      font-size: 1.875rem;
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
       font-size: ${({ theme }) => theme.typography.fontSize.xl};
+    }
+
+    /* Small Mobile */
+    @media (max-width: 480px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.lg};
     }
   }
 `;
@@ -123,21 +148,54 @@ const PageTitleIcon = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   background: ${({ theme }) => theme.gradients.primary};
   color: white;
   flex-shrink: 0;
+  box-shadow: ${({ theme }) => theme.shadows.primary};
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    width: 48px;
+    height: 48px;
+    border-radius: ${({ theme }) => theme.borderRadius.xl};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    width: 36px;
+    height: 36px;
+  }
 `;
 
 const BudgetGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: ${({ theme }) => theme.spacing.lg};
+  gap: ${({ theme }) => theme.spacing.xl};
 
-  @media (max-width: 380px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
     grid-template-columns: 1fr;
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    gap: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
@@ -192,8 +250,8 @@ const BudgetInfo = styled.div`
 `;
 
 const CategoryIcon = styled.div<{ $color: string }>`
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   background: linear-gradient(
     135deg,
@@ -203,12 +261,34 @@ const CategoryIcon = styled.div<{ $color: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.625rem;
   box-shadow: 0 2px 8px ${({ $color }) => `${$color}15`};
   transition: all 0.3s ease;
 
   ${BudgetCard}:hover & {
     transform: scale(1.1) rotate(5deg);
+  }
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    width: 56px;
+    height: 56px;
+    font-size: 1.75rem;
+    border-radius: ${({ theme }) => theme.borderRadius.xl};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    width: 42px;
+    height: 42px;
+    font-size: 1.25rem;
   }
 `;
 
@@ -757,11 +837,26 @@ const OverviewTitleSection = styled.div`
 const OverviewStats = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: ${({ theme }) => theme.spacing.md};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${({ theme }) => theme.spacing.md};
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
-    grid-template-columns: 1fr 1fr;
+    gap: ${({ theme }) => theme.spacing.sm};
+    margin-bottom: ${({ theme }) => theme.spacing.md};
   }
 `;
 
@@ -953,6 +1048,9 @@ export default function BudgetsPage() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [totalSaved, setTotalSaved] = useState(0);
 
+  // Sync loading state with global navigation loader
+  usePageLoading(isLoading);
+
   // Form state
   const [formData, setFormData] = useState<BudgetFormData>({
     category_id: "",
@@ -1065,11 +1163,30 @@ export default function BudgetsPage() {
           }
 
           const { data: expenses } = await query;
-          const spent =
+          const expenseTotal =
             expenses?.reduce(
               (sum: number, e: { amount: number }) => sum + e.amount,
               0,
             ) || 0;
+
+          // For Overall Budget (no category), also include savings
+          let spent = expenseTotal;
+          if (!budget.category_id) {
+            const { data: periodContributions } = await supabase
+              .from("goal_contributions")
+              .select("amount")
+              .eq("user_id", user.id)
+              .gte("date", start)
+              .lte("date", end);
+
+            const savingsTotal =
+              periodContributions?.reduce(
+                (sum: number, c: { amount: number }) => sum + c.amount,
+                0,
+              ) || 0;
+
+            spent = expenseTotal + savingsTotal;
+          }
 
           return { ...budget, spent };
         },
@@ -1203,7 +1320,7 @@ export default function BudgetsPage() {
   };
 
   if (isLoading) {
-    return <Loader fullScreen text="Loading budgets..." />;
+    return null;
   }
 
   return (

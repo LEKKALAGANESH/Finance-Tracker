@@ -8,6 +8,8 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { BottomNavBar, BottomNavSpacer } from '@/components/ui/BottomNavBar';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { OnboardingFlow } from '@/components/onboarding';
+import { NavigationProvider } from '@/context/NavigationContext';
+import { PageTransitionLoader } from '@/components/ui/PageTransitionLoader';
 
 const LayoutContainer = styled.div`
   min-height: 100vh;
@@ -27,7 +29,7 @@ const LayoutContainer = styled.div`
 `;
 
 const MainContent = styled.main<{ $sidebarCollapsed: boolean }>`
-  margin-left: ${({ $sidebarCollapsed }) => ($sidebarCollapsed ? '70px' : '260px')};
+  margin-left: ${({ $sidebarCollapsed }) => ($sidebarCollapsed ? '76px' : '260px')};
   min-height: 100vh;
   transition: margin-left 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
@@ -35,7 +37,7 @@ const MainContent = styled.main<{ $sidebarCollapsed: boolean }>`
   position: relative;
   z-index: 1;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023px) {
     margin-left: 0;
   }
 `;
@@ -73,23 +75,26 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <LayoutContainer>
-      <Sidebar
-        isCollapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-      <MobileNav isOpen={mobileNavOpen} onClose={handleMobileNavClose} />
-      <MainContent $sidebarCollapsed={sidebarCollapsed}>
-        <Header onMenuClick={() => setMobileNavOpen(true)} />
-        <ContentWrapper>
-          <ErrorBoundary>
-            {children}
-          </ErrorBoundary>
-        </ContentWrapper>
-        <BottomNavSpacer />
-      </MainContent>
-      <BottomNavBar />
-      <OnboardingFlow />
-    </LayoutContainer>
+    <NavigationProvider>
+      <LayoutContainer>
+        <PageTransitionLoader />
+        <Sidebar
+          isCollapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+        <MobileNav isOpen={mobileNavOpen} onClose={handleMobileNavClose} />
+        <MainContent $sidebarCollapsed={sidebarCollapsed}>
+          <Header onMenuClick={() => setMobileNavOpen(true)} />
+          <ContentWrapper>
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
+          </ContentWrapper>
+          <BottomNavSpacer />
+        </MainContent>
+        <BottomNavBar />
+        <OnboardingFlow />
+      </LayoutContainer>
+    </NavigationProvider>
   );
 }

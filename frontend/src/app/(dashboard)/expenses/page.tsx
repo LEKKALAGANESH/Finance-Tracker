@@ -7,6 +7,7 @@ import { Plus, Search, Trash2, Edit, ChevronLeft, ChevronRight, Calendar, Receip
 
 import { useAuth } from '@/context/AuthContext';
 import { useCurrency } from '@/context/CurrencyContext';
+import { usePageLoading } from '@/context/NavigationContext';
 import { useToast } from '@/context/ToastContext';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { formatDate } from '@/lib/utils';
@@ -137,9 +138,24 @@ const PageHeader = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   ${staggeredAnimation(0)}
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+    gap: ${({ theme }) => theme.spacing.md};
 
     a {
       width: 100%;
@@ -154,16 +170,37 @@ const PageHeader = styled.div`
 const PageTitle = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
+  gap: ${({ theme }) => theme.spacing.md};
 
   h1 {
     font-size: ${({ theme }) => theme.typography.fontSize['2xl']};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
 
-    @media (max-width: 480px) {
+    /* Tablet */
+    @media (max-width: 1023px) {
+      font-size: 1.875rem;
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
       font-size: ${({ theme }) => theme.typography.fontSize.xl};
     }
+
+    /* Small Mobile */
+    @media (max-width: 480px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.lg};
+    }
+  }
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    gap: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
@@ -171,13 +208,28 @@ const PageTitleIcon = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   background: ${({ theme }) => theme.gradients.primary};
   color: white;
   flex-shrink: 0;
+  box-shadow: ${({ theme }) => theme.shadows.primary};
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    width: 48px;
+    height: 48px;
+    border-radius: ${({ theme }) => theme.borderRadius.xl};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
     width: 36px;
     height: 36px;
@@ -187,14 +239,32 @@ const PageTitleIcon = styled.span`
 const FiltersContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }) => theme.spacing.lg};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
   ${staggeredAnimation(1)}
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    gap: ${({ theme }) => theme.spacing.lg};
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    gap: ${({ theme }) => theme.spacing.md};
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    gap: ${({ theme }) => theme.spacing.sm};
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+  }
 `;
 
 const DateFilterBar = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.spacing.sm};
+  gap: ${({ theme }) => theme.spacing.md};
   align-items: center;
   flex-wrap: wrap;
   padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
@@ -211,10 +281,24 @@ const DateFilterBar = styled.div`
     border-color: ${({ theme }) => theme.colors.borderDark};
   }
 
-  @media (max-width: 640px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
     flex-direction: column;
     align-items: stretch;
-    padding: ${({ theme }) => theme.spacing.md};
+    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+    border-radius: ${({ theme }) => theme.borderRadius.lg};
   }
 `;
 
@@ -271,7 +355,7 @@ const TotalSummary = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
   background: ${({ theme }) => theme.glass.background};
   backdrop-filter: ${({ theme }) => theme.glass.blur};
   border: 1px solid ${({ theme }) => theme.colors.border};
@@ -279,10 +363,27 @@ const TotalSummary = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.xl};
   ${staggeredAnimation(2)}
 
-  @media (max-width: 480px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
     flex-direction: column;
-    gap: ${({ theme }) => theme.spacing.sm};
+    gap: ${({ theme }) => theme.spacing.md};
     text-align: center;
+    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    gap: ${({ theme }) => theme.spacing.sm};
+    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+    border-radius: ${({ theme }) => theme.borderRadius.lg};
   }
 `;
 
@@ -411,8 +512,8 @@ const ExpenseInfo = styled.div`
 `;
 
 const CategoryIcon = styled.div<{ $color: string }>`
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   background: linear-gradient(
     135deg,
@@ -422,7 +523,7 @@ const CategoryIcon = styled.div<{ $color: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   flex-shrink: 0;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px ${({ $color }) => `${$color}15`};
@@ -432,9 +533,26 @@ const CategoryIcon = styled.div<{ $color: string }>`
     box-shadow: 0 4px 12px ${({ $color }) => `${$color}25`};
   }
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    width: 52px;
+    height: 52px;
+    font-size: 1.5rem;
+    border-radius: ${({ theme }) => theme.borderRadius.xl};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
+    font-size: 1.125rem;
   }
 `;
 
@@ -767,6 +885,10 @@ export default function ExpensesPage() {
   const { formatCurrency } = useCurrency();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync loading state with global navigation loader
+  usePageLoading(isLoading);
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -981,19 +1103,7 @@ export default function ExpensesPage() {
   };
 
   if (isLoading && transactions.length === 0) {
-    return (
-      <PageWrapper>
-        <PageContent>
-          <PageHeader>
-            <PageTitle>
-              <PageTitleIcon><Receipt size={20} /></PageTitleIcon>
-              <h1>Transactions</h1>
-            </PageTitle>
-          </PageHeader>
-          <SkeletonTable rows={8} />
-        </PageContent>
-      </PageWrapper>
-    );
+    return null;
   }
 
   if (error) {

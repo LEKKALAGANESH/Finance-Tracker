@@ -18,10 +18,10 @@ import { CategoryModal } from "@/components/categories/CategoryModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Loader } from "@/components/ui/Loader";
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/context/AuthContext";
+import { usePageLoading } from "@/context/NavigationContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useToast } from "@/context/ToastContext";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -106,27 +106,69 @@ interface CategoryColorProps {
 }
 
 const PageHeader = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
 
   h1 {
     font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
+
+    /* Tablet */
+    @media (max-width: 1023px) {
+      font-size: 1.875rem;
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.xl};
+    }
+
+    /* Small Mobile */
+    @media (max-width: 480px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.lg};
+    }
   }
 
   p {
     color: ${({ theme }) => theme.colors.textSecondary};
-    margin-top: ${({ theme }) => theme.spacing.xs};
+    margin-top: ${({ theme }) => theme.spacing.sm};
+
+    /* Mobile */
+    @media (max-width: 767px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.sm};
+    }
+  }
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
   }
 `;
 
 const SettingsGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${({ theme }) => theme.spacing.lg};
+  gap: ${({ theme }) => theme.spacing.xl};
 
-  @media (max-width: 1024px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
     grid-template-columns: 1fr;
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    gap: ${({ theme }) => theme.spacing.md};
   }
 `;
 
@@ -442,6 +484,10 @@ function SettingsContent() {
   const categoriesRef = useRef<HTMLDivElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync loading state with global navigation loader
+  usePageLoading(isLoading);
+
   const [isSaving, setIsSaving] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -741,7 +787,7 @@ function SettingsContent() {
   };
 
   if (isLoading) {
-    return <Loader fullScreen text="Loading settings..." />;
+    return null;
   }
 
   return (

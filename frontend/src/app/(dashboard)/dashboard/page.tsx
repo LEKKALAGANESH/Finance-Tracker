@@ -81,6 +81,7 @@ import { SkeletonDashboard } from "@/components/ui/Skeleton";
 import { FloatingActionButton } from "@/components/ui/FloatingActionButton";
 import { useAuth } from "@/context/AuthContext";
 import { useCurrency } from "@/context/CurrencyContext";
+import { usePageLoading } from "@/context/NavigationContext";
 import { getCurrencyIcon } from "@/components/ui/CurrencyIcon";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
@@ -194,9 +195,24 @@ const PageHeader = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   ${staggeredAnimation(0)}
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+    gap: ${({ theme }) => theme.spacing.md};
   }
 `;
 
@@ -221,8 +237,22 @@ const WelcomeText = styled.div`
       background-clip: text;
     }
 
-    @media (max-width: 480px) {
+    /* Tablet */
+    @media (max-width: 1023px) {
+      font-size: 1.875rem;
+      gap: ${({ theme }) => theme.spacing.md};
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
       font-size: ${({ theme }) => theme.typography.fontSize.xl};
+      gap: ${({ theme }) => theme.spacing.sm};
+    }
+
+    /* Small Mobile */
+    @media (max-width: 480px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.lg};
+      gap: ${({ theme }) => theme.spacing.xs};
     }
   }
 
@@ -234,8 +264,20 @@ const WelcomeText = styled.div`
     align-items: center;
     gap: ${({ theme }) => theme.spacing.xs};
 
-    @media (max-width: 480px) {
+    /* Tablet */
+    @media (max-width: 1023px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.base};
+      margin-top: ${({ theme }) => theme.spacing.sm};
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
       font-size: ${({ theme }) => theme.typography.fontSize.sm};
+    }
+
+    /* Small Mobile */
+    @media (max-width: 480px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.xs};
     }
   }
 `;
@@ -243,7 +285,22 @@ const WelcomeText = styled.div`
 const WelcomeIcon = styled.span`
   display: inline-flex;
   animation: ${float} 3s ease-in-out infinite;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    font-size: 1.625rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    font-size: 1.375rem;
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    font-size: 1.125rem;
+  }
 `;
 
 const FilterBar = styled.div`
@@ -267,10 +324,27 @@ const FilterBar = styled.div`
     border-color: ${({ theme }) => theme.colors.borderDark};
   }
 
-  @media (max-width: 640px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+    gap: ${({ theme }) => theme.spacing.sm};
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
     flex-direction: column;
     align-items: stretch;
-    padding: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+    border-radius: ${({ theme }) => theme.borderRadius.lg};
   }
 `;
 
@@ -306,7 +380,7 @@ const FilterSelect = styled.div`
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }) => theme.spacing.lg};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
 
   /* Staggered animation for stat cards */
@@ -315,29 +389,50 @@ const StatsGrid = styled.div`
   & > *:nth-child(3) { ${staggeredAnimation(4)} }
   & > *:nth-child(4) { ${staggeredAnimation(5)} }
 
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
+  /* Tablet */
+  @media (max-width: 1023px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${({ theme }) => theme.spacing.lg};
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
   }
 
-  @media (max-width: 768px) {
+  /* Mobile */
+  @media (max-width: 767px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${({ theme }) => theme.spacing.md};
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
     gap: ${({ theme }) => theme.spacing.sm};
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
   }
 `;
 
 const ContentGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${({ theme }) => theme.spacing.lg};
+  gap: ${({ theme }) => theme.spacing.xl};
 
   /* Staggered animation for content sections */
   & > *:nth-child(1) { ${staggeredAnimation(8)} }
   & > *:nth-child(2) { ${staggeredAnimation(9)} }
 
-  @media (max-width: 1024px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
     grid-template-columns: 1fr;
+    gap: ${({ theme }) => theme.spacing.xl};
   }
 
-  @media (max-width: 768px) {
+  /* Mobile */
+  @media (max-width: 767px) {
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
     gap: ${({ theme }) => theme.spacing.md};
   }
 `;
@@ -410,8 +505,23 @@ const BudgetOverviewCard = styled.div`
     }
   }
 
-  @media (max-width: 768px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    padding: ${({ theme }) => theme.spacing["2xl"]};
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
     padding: ${({ theme }) => theme.spacing.xl};
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.lg};
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+    border-radius: ${({ theme }) => theme.borderRadius.lg};
   }
 `;
 
@@ -501,6 +611,21 @@ const BudgetProgressBar = styled.div`
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
     pointer-events: none;
   }
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    height: 36px;
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    height: 28px;
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    height: 24px;
+  }
 `;
 
 const BudgetProgressSegment = styled.div<{ $width: number; $color: string; $delay?: number }>`
@@ -586,18 +711,29 @@ const BudgetLegend = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.lg};
-  margin-top: ${({ theme }) => theme.spacing.lg};
+  margin-top: ${({ theme }) => theme.spacing.xl};
   position: relative;
   z-index: 1;
 
-  @media (max-width: 640px) {
-    gap: ${({ theme }) => theme.spacing.md};
+  /* Tablet */
+  @media (max-width: 1023px) {
+    gap: ${({ theme }) => theme.spacing.lg};
+    margin-top: ${({ theme }) => theme.spacing.xl};
   }
 
-  @media (max-width: 480px) {
+  /* Mobile */
+  @media (max-width: 767px) {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: ${({ theme }) => theme.spacing.md};
+    margin-top: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr 1fr;
+    gap: ${({ theme }) => theme.spacing.sm};
+    margin-top: ${({ theme }) => theme.spacing.md};
   }
 `;
 
@@ -627,9 +763,24 @@ const LegendItem = styled.div<{ $color?: string }>`
     background: ${({ theme }) => theme.colors.surface};
   }
 
-  @media (max-width: 480px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
+    min-width: 160px;
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
     min-width: auto;
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
     padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+    gap: ${({ theme }) => theme.spacing.xs};
+    border-radius: ${({ theme }) => theme.borderRadius.lg};
   }
 `;
 
@@ -664,6 +815,36 @@ const LegendText = styled.div`
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
     font-feature-settings: 'tnum';
+  }
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    span:first-child {
+      font-size: ${({ theme }) => theme.typography.fontSize.xs};
+    }
+    span:last-child {
+      font-size: ${({ theme }) => theme.typography.fontSize.base};
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    gap: 2px;
+    span:last-child {
+      font-size: ${({ theme }) => theme.typography.fontSize.sm};
+    }
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    gap: 1px;
+    span:first-child {
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+    }
+    span:last-child {
+      font-size: ${({ theme }) => theme.typography.fontSize.xs};
+    }
   }
 `;
 
@@ -763,6 +944,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const CurrencyIconComponent = getCurrencyIcon(currency.code);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync loading state with global navigation loader
+  usePageLoading(isLoading);
+
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
@@ -971,7 +1156,7 @@ export default function DashboardPage() {
   }, [user, selectedMonth, selectedYear]);
 
   if (isLoading) {
-    return <SkeletonDashboard />;
+    return null;
   }
 
   if (error) {

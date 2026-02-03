@@ -103,14 +103,41 @@ const FABContainer = styled.div<{
   ${({ $showOnMobileOnly }) =>
     $showOnMobileOnly &&
     css`
-      @media (min-width: 769px) {
+      @media (min-width: 1024px) {
         display: none;
       }
     `}
 
-  @media (max-width: 768px) {
-    right: 16px;
-    bottom: 80px; /* Account for bottom nav */
+  @media (max-width: 1023px) {
+    ${({ $position }) =>
+      $position === 'bottom-right'
+        ? css`
+            right: 16px;
+            left: auto;
+          `
+        : $position === 'bottom-left'
+          ? css`
+              left: 16px;
+              right: auto;
+            `
+          : ''}
+    bottom: 88px; /* Account for bottom nav */
+  }
+
+  @media (max-width: 480px) {
+    ${({ $position }) =>
+      $position === 'bottom-right'
+        ? css`
+            right: 12px;
+            left: auto;
+          `
+        : $position === 'bottom-left'
+          ? css`
+              left: 12px;
+              right: auto;
+            `
+          : ''}
+    bottom: 80px;
   }
 `;
 

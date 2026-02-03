@@ -5,6 +5,7 @@ import styled, { keyframes } from 'styled-components';
 import { X, LayoutDashboard, Receipt, Wallet, Target, FileText, Sparkles, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useNavigation } from '@/context/NavigationContext';
 
 import { SignOutModal } from '@/components/auth/SignOutModal';
 
@@ -17,7 +18,7 @@ const Overlay = styled.div<{ $isOpen: boolean }>`
   transition: all 0.3s ease;
   z-index: 998;
 
-  @media (min-width: 769px) {
+  @media (min-width: 1024px) {
     display: none;
   }
 `;
@@ -37,7 +38,7 @@ const NavDrawer = styled.nav<{ $isOpen: boolean }>`
   display: flex;
   flex-direction: column;
 
-  @media (min-width: 769px) {
+  @media (min-width: 1024px) {
     display: none;
   }
 `;
@@ -229,7 +230,13 @@ interface MobileNavProps {
 
 export function MobileNav({ isOpen, onClose }: MobileNavProps) {
   const pathname = usePathname();
+  const { navigateTo } = useNavigation();
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+
+  const handleNavigation = (href: string) => {
+    onClose();
+    navigateTo(href);
+  };
 
   // Prevent body scroll when menu is open
   useEffect(() => {
@@ -271,7 +278,15 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
           <NavSection>
             <NavSectionTitle>Menu</NavSectionTitle>
             {navItems.map((item) => (
-              <NavLink key={item.href} href={item.href} $isActive={pathname === item.href}>
+              <NavLink
+                key={item.href}
+                href={item.href}
+                $isActive={pathname === item.href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavigation(item.href);
+                }}
+              >
                 <item.icon size={20} />
                 {item.label}
               </NavLink>
@@ -280,7 +295,14 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
 
           <NavSection>
             <NavSectionTitle>Account</NavSectionTitle>
-            <NavLink href="/settings" $isActive={pathname === '/settings'}>
+            <NavLink
+              href="/settings"
+              $isActive={pathname === '/settings'}
+              onClick={(e) => {
+                e.preventDefault();
+                handleNavigation('/settings');
+              }}
+            >
               <Settings size={20} />
               Settings
             </NavLink>

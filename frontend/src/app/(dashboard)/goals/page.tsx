@@ -17,10 +17,10 @@ import styled, { css, keyframes } from "styled-components";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Loader } from "@/components/ui/Loader";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useCurrency } from "@/context/CurrencyContext";
+import { usePageLoading } from "@/context/NavigationContext";
 import { useToast } from "@/context/ToastContext";
 import { GOAL_ICONS } from "@/lib/constants";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -171,9 +171,23 @@ const PageHeader = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   ${staggeredAnimation(0)}
 
+  /* Tablet */
+  @media (max-width: 1023px) {
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
 
     button {
       width: 100%;
@@ -184,15 +198,26 @@ const PageHeader = styled.div`
 const PageTitle = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
+  gap: ${({ theme }) => theme.spacing.md};
 
   h1 {
     font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
     font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
     color: ${({ theme }) => theme.colors.text};
 
-    @media (max-width: 480px) {
+    /* Tablet */
+    @media (max-width: 1023px) {
+      font-size: 1.875rem;
+    }
+
+    /* Mobile */
+    @media (max-width: 767px) {
       font-size: ${({ theme }) => theme.typography.fontSize.xl};
+    }
+
+    /* Small Mobile */
+    @media (max-width: 480px) {
+      font-size: ${({ theme }) => theme.typography.fontSize.lg};
     }
   }
 `;
@@ -201,8 +226,8 @@ const PageTitleIcon = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   background: linear-gradient(
     135deg,
@@ -211,15 +236,48 @@ const PageTitleIcon = styled.span`
   );
   color: white;
   flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    width: 48px;
+    height: 48px;
+    border-radius: ${({ theme }) => theme.borderRadius.xl};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    width: 36px;
+    height: 36px;
+  }
 `;
 
 const GoalsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: ${({ theme }) => theme.spacing.lg};
+  gap: ${({ theme }) => theme.spacing.xl};
 
-  @media (max-width: 380px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
     grid-template-columns: 1fr;
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    gap: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
@@ -850,6 +908,9 @@ export default function GoalsPage() {
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [goals, setGoals] = useState<Goal[]>([]);
+
+  // Sync loading state with global navigation loader
+  usePageLoading(isLoading);
   const [modalOpen, setModalOpen] = useState(false);
   const [contributeModalOpen, setContributeModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
@@ -1057,7 +1118,7 @@ export default function GoalsPage() {
   };
 
   if (isLoading) {
-    return <Loader fullScreen text="Loading goals..." />;
+    return null;
   }
 
   return (

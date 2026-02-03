@@ -15,10 +15,10 @@ import styled, { keyframes, useTheme } from "styled-components";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { Loader } from "@/components/ui/Loader";
 import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/context/AuthContext";
 import { useCurrency } from "@/context/CurrencyContext";
+import { usePageLoading } from "@/context/NavigationContext";
 import { useToast } from "@/context/ToastContext";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
@@ -127,9 +127,23 @@ const PageHeader = styled.div`
   flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.lg};
 
-  @media (max-width: 768px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
     flex-direction: column;
     align-items: stretch;
+    margin-bottom: ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
   }
 `;
 
@@ -137,6 +151,11 @@ const PageTitleSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing.xs};
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
 `;
 
 const PageTitle = styled.h1`
@@ -152,8 +171,19 @@ const PageTitle = styled.h1`
   background-clip: text;
   letter-spacing: -0.02em;
 
-  @media (max-width: 480px) {
+  /* Tablet */
+  @media (max-width: 1023px) {
+    font-size: 2rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
     font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.xl};
   }
 `;
 
@@ -175,14 +205,24 @@ const FilterBar = styled.div`
   border-radius: ${({ theme }) => theme.borderRadius.xl};
   box-shadow: ${({ theme }) => theme.shadows.md};
 
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: center;
+  /* Tablet */
+  @media (max-width: 1023px) {
+    padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.xl};
+    gap: ${({ theme }) => theme.spacing.md};
   }
 
+  /* Mobile */
+  @media (max-width: 767px) {
+    width: 100%;
+    justify-content: center;
+    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Small Mobile */
   @media (max-width: 480px) {
     flex-direction: column;
     gap: ${({ theme }) => theme.spacing.sm};
+    padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
 
     > * {
       width: 100%;
@@ -990,6 +1030,10 @@ export default function ReportsPage() {
   const toast = useToast();
   const theme = useTheme();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync loading state with global navigation loader
+  usePageLoading(isLoading);
+
   const [selectedMonth, setSelectedMonth] = useState(
     (new Date().getMonth() + 1).toString(),
   );
@@ -1395,7 +1439,7 @@ export default function ReportsPage() {
   };
 
   if (isLoading) {
-    return <Loader fullScreen text="Loading reports..." />;
+    return null;
   }
 
   const periodLabel =

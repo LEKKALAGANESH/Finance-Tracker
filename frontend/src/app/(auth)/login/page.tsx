@@ -61,16 +61,48 @@ const Form = styled.form`
 
 const Title = styled.h2`
   text-align: center;
-  font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
   color: ${({ theme }) => theme.colors.text};
   margin-bottom: ${({ theme }) => theme.spacing.sm};
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    font-size: 1.75rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.lg};
+    margin-bottom: ${({ theme }) => theme.spacing.xs};
+  }
 `;
 
 const Subtitle = styled.p`
   text-align: center;
   color: ${({ theme }) => theme.colors.textSecondary};
-  font-size: ${({ theme }) => theme.typography.fontSize.sm};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  font-size: ${({ theme }) => theme.typography.fontSize.base};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+
+  /* Tablet */
+  @media (max-width: 1023px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.base};
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+  }
+
+  /* Mobile */
+  @media (max-width: 767px) {
+    font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  }
+
+  /* Small Mobile */
+  @media (max-width: 480px) {
+    margin-bottom: ${({ theme }) => theme.spacing.md};
+  }
 `;
 
 const PasswordToggle = styled.button`
