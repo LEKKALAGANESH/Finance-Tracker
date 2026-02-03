@@ -949,13 +949,6 @@ const PieTooltipValue = styled.span`
   font-feature-settings: "tnum";
 `;
 
-const PieLabelText = styled.text`
-  fill: ${({ theme }) => theme.colors.text};
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-`;
-
 // ============================================================================
 // Constants
 // ============================================================================
@@ -1345,15 +1338,22 @@ export default function ReportsPage() {
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
+    // Note: SVG elements require inline styles as styled-components doesn't work well with SVG in SSR
     return (
-      <PieLabelText
+      <text
         x={x}
         y={y}
+        fill={theme.colors.text}
         textAnchor={x > cx ? "start" : "end"}
         dominantBaseline="central"
+        style={{
+          fontSize: "12px",
+          fontWeight: 600,
+          letterSpacing: "-0.01em",
+        }}
       >
         {`${name} ${(percent * 100).toFixed(0)}%`}
-      </PieLabelText>
+      </text>
     );
   };
 
