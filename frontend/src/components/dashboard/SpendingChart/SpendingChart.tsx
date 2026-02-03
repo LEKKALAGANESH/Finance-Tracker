@@ -13,7 +13,7 @@ import {
   Tooltip,
   TooltipProps,
 } from "recharts";
-import styled, { keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 
 interface CategoryData {
   name: string;
@@ -213,7 +213,8 @@ const CenterStats = styled.div<{ $isHidden?: boolean }>`
   opacity: ${({ $isHidden }) => ($isHidden ? "0 !important" : 1)};
   visibility: ${({ $isHidden }) => ($isHidden ? "hidden" : "visible")};
   transition: opacity 0.15s ease, visibility 0.15s ease;
-  animation: ${({ $isHidden }) => ($isHidden ? "none" : `${fadeIn} 0.6s ease 0.3s forwards`)};
+  animation: ${({ $isHidden }) =>
+    $isHidden ? "none" : css`${fadeIn} 0.6s ease 0.3s forwards`};
 `;
 
 const CenterLabel = styled.span`
