@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
-import styled, { keyframes, css } from 'styled-components';
-import { LucideIcon, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
+import { LucideIcon, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import styled, { css, keyframes } from "styled-components";
 
 interface StatCardProps {
   title: string;
@@ -70,7 +70,7 @@ const Card = styled.div<{ $color: string }>`
 
   /* Animated gradient border on hover */
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -89,7 +89,7 @@ const Card = styled.div<{ $color: string }>`
 
   /* Glow effect background */
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: -50%;
     right: -50%;
@@ -134,8 +134,12 @@ const Card = styled.div<{ $color: string }>`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
-    &:hover { transform: none; }
-    &::before { animation: none; }
+    &:hover {
+      transform: none;
+    }
+    &::before {
+      animation: none;
+    }
   }
 `;
 
@@ -149,7 +153,7 @@ const ShimmerOverlay = styled.div`
   pointer-events: none;
 
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -206,7 +210,7 @@ const Value = styled.span`
   font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
   color: ${({ theme }) => theme.colors.text};
   letter-spacing: -0.03em;
-  font-feature-settings: 'tnum';
+  font-feature-settings: "tnum";
   display: inline-block;
   line-height: 1.1;
   background: linear-gradient(
@@ -234,8 +238,8 @@ const AnimatedValue = styled.span<{ $isAnimating: boolean }>`
   ${({ $isAnimating }) =>
     $isAnimating &&
     css`
-    animation: ${pulse} 0.3s ease;
-  `}
+      animation: ${pulse} 0.3s ease;
+    `}
 `;
 
 const Trend = styled.div<{ $isPositive: boolean }>`
@@ -255,8 +259,9 @@ const Trend = styled.div<{ $isPositive: boolean }>`
   border-radius: ${({ theme }) => theme.borderRadius.full};
   width: fit-content;
   transition: all 0.3s ease;
-  border: 1px solid ${({ theme, $isPositive }) =>
-    $isPositive ? `${theme.colors.success}20` : `${theme.colors.error}20`};
+  border: 1px solid
+    ${({ theme, $isPositive }) =>
+      $isPositive ? `${theme.colors.success}20` : `${theme.colors.error}20`};
 
   svg {
     transition: transform 0.3s ease;
@@ -265,12 +270,14 @@ const Trend = styled.div<{ $isPositive: boolean }>`
 
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 12px ${({ theme, $isPositive }) =>
-      $isPositive ? `${theme.colors.success}30` : `${theme.colors.error}30`};
+    box-shadow: 0 4px 12px
+      ${({ theme, $isPositive }) =>
+        $isPositive ? `${theme.colors.success}30` : `${theme.colors.error}30`};
   }
 
   &:hover svg {
-    transform: ${({ $isPositive }) => ($isPositive ? 'translateY(-3px)' : 'translateY(3px)')};
+    transform: ${({ $isPositive }) =>
+      $isPositive ? "translateY(-3px)" : "translateY(3px)"};
   }
 
   @media (max-width: 480px) {
@@ -307,7 +314,7 @@ const IconWrapper = styled.div<{ $color: string }>`
 
   /* Inner glow ring */
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: -2px;
     border-radius: inherit;
@@ -324,7 +331,7 @@ const IconWrapper = styled.div<{ $color: string }>`
 
   /* Solid background on hover */
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
@@ -414,7 +421,7 @@ function useAnimatedCounter(endValue: string, duration: number = 1000) {
 
   useEffect(() => {
     const extractNumber = (val: string) => {
-      const match = val.replace(/[^0-9.-]/g, '');
+      const match = val.replace(/[^0-9.-]/g, "");
       return parseFloat(match) || 0;
     };
 
@@ -435,10 +442,10 @@ function useAnimatedCounter(endValue: string, duration: number = 1000) {
       const easeOut = 1 - Math.pow(1 - progress, 3);
       const currentNum = startNum + (endNum - startNum) * easeOut;
 
-      const prefix = endValue.match(/^[^0-9.-]*/)?.[0] || '';
-      const suffix = endValue.match(/[^0-9.-]*$/)?.[0] || '';
-      const decimals = (endValue.match(/\.(\d+)/)?.[1]?.length) || 0;
-      const formattedNum = currentNum.toLocaleString('en-US', {
+      const prefix = endValue.match(/^[^0-9.-]*/)?.[0] || "";
+      const suffix = endValue.match(/[^0-9.-]*$/)?.[0] || "";
+      const decimals = endValue.match(/\.(\d+)/)?.[1]?.length || 0;
+      const formattedNum = currentNum.toLocaleString("en-US", {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       });
@@ -460,7 +467,13 @@ function useAnimatedCounter(endValue: string, duration: number = 1000) {
   return { displayValue, isAnimating };
 }
 
-export function StatCard({ title, value, icon: Icon, trend, color = '#6366f1' }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  color = "#6366f1",
+}: StatCardProps) {
   const { displayValue, isAnimating } = useAnimatedCounter(value, 800);
 
   return (
@@ -472,12 +485,18 @@ export function StatCard({ title, value, icon: Icon, trend, color = '#6366f1' }:
         </TitleRow>
         <ValueContainer>
           <Value>
-            <AnimatedValue $isAnimating={isAnimating}>{displayValue}</AnimatedValue>
+            <AnimatedValue $isAnimating={isAnimating}>
+              {displayValue}
+            </AnimatedValue>
           </Value>
         </ValueContainer>
         {trend && (
           <Trend $isPositive={trend.isPositive}>
-            {trend.isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+            {trend.isPositive ? (
+              <TrendingUp size={14} />
+            ) : (
+              <TrendingDown size={14} />
+            )}
             <span>{Math.abs(trend.value).toFixed(1)}% vs last month</span>
           </Trend>
         )}

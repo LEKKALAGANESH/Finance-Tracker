@@ -7,7 +7,6 @@ import styled, { css, keyframes } from "styled-components";
 import { CategoryModal } from "@/components/categories/CategoryModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
-import { IconButton } from "@/components/ui/IconButton";
 import { Input } from "@/components/ui/Input";
 import { Loader } from "@/components/ui/Loader";
 import { Modal } from "@/components/ui/Modal";
@@ -31,6 +30,11 @@ const fadeInUp = keyframes`
   }
 `;
 
+
+const shimmer = keyframes`
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+`;
 const staggeredAnimation = (index: number) => css`
   opacity: 0;
   animation: ${fadeInUp} 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -146,7 +150,7 @@ const BudgetCard = styled(Card)<{ $index?: number }>`
   background: ${({ theme }) => theme.glass.background};
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  overflow: hidden;
+  overflow: visible;
 
   &::before {
     content: '';
@@ -224,7 +228,165 @@ const BudgetDetails = styled.div`
 
 const Actions = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.spacing.xs};
+  gap: ${({ theme }) => theme.spacing.sm};
+  overflow: visible;
+`;
+
+// Premium Edit Button
+const EditButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  box-shadow:
+    0 4px 14px rgba(99, 102, 241, 0.4),
+    0 2px 6px rgba(99, 102, 241, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+  }
+
+  &:hover {
+    transform: translateY(-3px) scale(1.08);
+    box-shadow:
+      0 8px 25px rgba(99, 102, 241, 0.5),
+      0 4px 12px rgba(99, 102, 241, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+    &::before {
+      animation: ${shimmer} 0.8s ease-in-out;
+    }
+  }
+
+  &:active {
+    transform: translateY(-1px) scale(1.02);
+  }
+
+  svg {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  }
+`;
+
+// Premium Delete Button
+const DeleteButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow:
+    0 4px 14px rgba(239, 68, 68, 0.4),
+    0 2px 6px rgba(239, 68, 68, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+  }
+
+  &:hover {
+    transform: translateY(-3px) scale(1.08);
+    box-shadow:
+      0 8px 25px rgba(239, 68, 68, 0.5),
+      0 4px 12px rgba(239, 68, 68, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+    &::before {
+      animation: ${shimmer} 0.8s ease-in-out;
+    }
+  }
+
+  &:active {
+    transform: translateY(-1px) scale(1.02);
+  }
+
+  svg {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  }
+`;
+
+// Action button wrapper with tooltip
+const ActionButtonWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+
+  &:hover > span {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+`;
+
+// Tooltip that appears above buttons
+const ActionTooltip = styled.span`
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 12px;
+  background: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme.colors.background};
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: ${({ theme }) => theme.colors.text};
+  }
 `;
 
 const ProgressSection = styled.div`
@@ -1195,24 +1357,24 @@ export default function BudgetsPage() {
                         </BudgetDetails>
                       </BudgetInfo>
                       <Actions>
-                        <IconButton
-                          variant="primary"
-                          size="sm"
-                          tooltip="Edit budget"
+                        <ActionButtonWrapper>
+                        <EditButton
                           onClick={() => openModal(budget)}
                           aria-label="Edit budget"
                         >
                           <Edit size={16} />
-                        </IconButton>
-                        <IconButton
-                          variant="danger"
-                          size="sm"
-                          tooltip="Delete budget"
+                        </EditButton>
+                        <ActionTooltip>Edit</ActionTooltip>
+                      </ActionButtonWrapper>
+                        <ActionButtonWrapper>
+                        <DeleteButton
                           onClick={() => handleDelete(budget.id)}
                           aria-label="Delete budget"
                         >
                           <Trash2 size={16} />
-                        </IconButton>
+                        </DeleteButton>
+                        <ActionTooltip>Delete</ActionTooltip>
+                      </ActionButtonWrapper>
                       </Actions>
                     </BudgetHeader>
 

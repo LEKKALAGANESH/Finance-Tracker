@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { forwardRef, InputHTMLAttributes, ReactNode, useState } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import { forwardRef, InputHTMLAttributes, ReactNode, useState } from "react";
+import styled, { css, keyframes } from "styled-components";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -33,7 +33,11 @@ const InputWrapper = styled.div<{ $fullWidth: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  ${({ $fullWidth }) => $fullWidth && css`width: 100%;`}
+  ${({ $fullWidth }) =>
+    $fullWidth &&
+    css`
+      width: 100%;
+    `}
 `;
 
 const Label = styled.label<{ $focused: boolean; $hasError: boolean }>`
@@ -43,8 +47,8 @@ const Label = styled.label<{ $focused: boolean; $hasError: boolean }>`
     $hasError
       ? theme.colors.error
       : $focused
-      ? theme.colors.primary
-      : theme.colors.textSecondary};
+        ? theme.colors.primary
+        : theme.colors.textSecondary};
   transition: color 0.2s ease;
   letter-spacing: 0.01em;
 `;
@@ -58,13 +62,15 @@ const InputContainer = styled.div<{
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
+  overflow: hidden;
   background: ${({ theme }) => theme.colors.surface};
-  border: 1.5px solid ${({ theme, $hasError, $focused }) =>
-    $hasError
-      ? theme.colors.error
-      : $focused
-      ? theme.colors.primary
-      : theme.colors.border};
+  border: 1.5px solid
+    ${({ theme, $hasError, $focused }) =>
+      $hasError
+        ? theme.colors.error
+        : $focused
+          ? theme.colors.primary
+          : theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -75,21 +81,22 @@ const InputContainer = styled.div<{
       ? $hasError
         ? `0 0 0 3px ${theme.colors.errorLight}`
         : `0 0 0 3px ${theme.colors.primaryLight}`
-      : 'none'};
+      : "none"};
 
   /* Animated underline */
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -1.5px;
     left: 50%;
-    width: ${({ $focused }) => ($focused ? '100%' : '0%')};
+    width: ${({ $focused }) => ($focused ? "100%" : "0%")};
     height: 2px;
     background: ${({ theme, $hasError }) =>
       $hasError ? theme.colors.error : theme.gradients.primary};
     transform: translateX(-50%);
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 0 0 ${({ theme }) => theme.borderRadius.lg} ${({ theme }) => theme.borderRadius.lg};
+    border-radius: 0 0 ${({ theme }) => theme.borderRadius.lg}
+      ${({ theme }) => theme.borderRadius.lg};
   }
 
   ${({ $disabled, theme }) =>
@@ -111,8 +118,8 @@ const InputContainer = styled.div<{
       $disabled
         ? theme.colors.border
         : $hasError
-        ? theme.colors.error
-        : theme.colors.borderDark};
+          ? theme.colors.error
+          : theme.colors.borderDark};
   }
 `;
 
@@ -142,18 +149,24 @@ const StyledInput = styled.input`
   &:-webkit-autofill,
   &:-webkit-autofill:hover,
   &:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0 1000px ${({ theme }) => theme.colors.surface} inset;
+    -webkit-box-shadow: 0 0 0 1000px ${({ theme }) => theme.colors.surface}
+      inset;
     -webkit-text-fill-color: ${({ theme }) => theme.colors.text};
     transition: background-color 5000s ease-in-out 0s;
   }
 `;
 
-const IconWrapper = styled.span<{ $focused?: boolean; $position?: 'left' | 'right' }>`
+const IconWrapper = styled.span<{
+  $focused?: boolean;
+  $position?: "left" | "right";
+}>`
   display: flex;
   align-items: center;
   color: ${({ theme, $focused }) =>
     $focused ? theme.colors.primary : theme.colors.textMuted};
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
 
   svg {
     width: 18px;
@@ -162,7 +175,7 @@ const IconWrapper = styled.span<{ $focused?: boolean; $position?: 'left' | 'righ
 
   ${({ $focused, $position }) =>
     $focused &&
-    $position === 'left' &&
+    $position === "left" &&
     css`
       transform: scale(1.1);
     `}
@@ -183,7 +196,7 @@ const ErrorText = styled.span`
   gap: 0.25rem;
 
   &::before {
-    content: '';
+    content: "";
     display: inline-block;
     width: 4px;
     height: 4px;
@@ -212,7 +225,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       onBlur,
       ...props
     },
-    ref
+    ref,
   ) => {
     const [focused, setFocused] = useState(false);
     const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
@@ -234,7 +247,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </Label>
         )}
-        <InputContainer $hasError={!!error} $disabled={disabled} $focused={focused}>
+        <InputContainer
+          $hasError={!!error}
+          $disabled={disabled}
+          $focused={focused}
+        >
           {leftIcon && (
             <IconWrapper $focused={focused} $position="left">
               {leftIcon}
@@ -268,7 +285,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
       </InputWrapper>
     );
-  }
+  },
 );
 
-Input.displayName = 'Input';
+Input.displayName = "Input";

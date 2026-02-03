@@ -28,6 +28,11 @@ const fadeInUp = keyframes`
   }
 `;
 
+
+const shimmer = keyframes`
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+`;
 const staggeredAnimation = (index: number) => css`
   opacity: 0;
   animation: ${fadeInUp} 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -315,7 +320,7 @@ const Table = styled.div`
   background: ${({ theme }) => theme.colors.surface};
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.xl};
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   ${staggeredAnimation(3)}
 
@@ -350,6 +355,7 @@ const TableHeader = styled.div`
 `;
 
 const TableRow = styled.div<{ $index?: number }>`
+  overflow: visible;
   display: grid;
   grid-template-columns: 1fr 150px 120px 120px 100px;
   padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
@@ -479,6 +485,9 @@ const MobileDate = styled.span`
 `;
 
 const MobileHidden = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+
   @media (max-width: 768px) {
     display: none;
   }
@@ -495,28 +504,160 @@ const DesktopActions = styled(Actions)`
   }
 `;
 
-const IconButton = styled.button`
-  padding: ${({ theme }) => theme.spacing.sm};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  color: ${({ theme }) => theme.colors.textSecondary};
-  transition: all 0.2s ease;
-  display: flex;
+// Premium Edit Button
+const EditButton = styled.button`
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  box-shadow:
+    0 4px 14px rgba(99, 102, 241, 0.4),
+    0 2px 6px rgba(99, 102, 241, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+  }
 
   &:hover {
-    background: ${({ theme }) => theme.colors.surfaceHover};
-    color: ${({ theme }) => theme.colors.primary};
-    transform: scale(1.1);
+    transform: translateY(-3px) scale(1.08);
+    box-shadow:
+      0 8px 25px rgba(99, 102, 241, 0.5),
+      0 4px 12px rgba(99, 102, 241, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+    &::before {
+      animation: ${shimmer} 0.8s ease-in-out;
+    }
   }
 
   &:active {
-    transform: scale(0.95);
+    transform: translateY(-1px) scale(1.02);
   }
 
-  &.danger:hover {
-    background: ${({ theme }) => theme.colors.errorLight};
-    color: ${({ theme }) => theme.colors.error};
+  svg {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  }
+`;
+
+// Premium Delete Button
+const DeleteButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow:
+    0 4px 14px rgba(239, 68, 68, 0.4),
+    0 2px 6px rgba(239, 68, 68, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+  }
+
+  &:hover {
+    transform: translateY(-3px) scale(1.08);
+    box-shadow:
+      0 8px 25px rgba(239, 68, 68, 0.5),
+      0 4px 12px rgba(239, 68, 68, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+    &::before {
+      animation: ${shimmer} 0.8s ease-in-out;
+    }
+  }
+
+  &:active {
+    transform: translateY(-1px) scale(1.02);
+  }
+
+  svg {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  }
+`;
+
+// Action button wrapper with tooltip
+const ActionButtonWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+
+  &:hover > span {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+`;
+
+// Tooltip that appears above buttons
+const ActionTooltip = styled.span`
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 12px;
+  background: ${({ theme }) => theme.colors.text};
+  color: ${({ theme }) => theme.colors.background};
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: ${({ theme }) => theme.colors.text};
   }
 `;
 
@@ -1016,39 +1157,47 @@ export default function ExpensesPage() {
                 </Amount>
                 <DesktopActions>
                   {transaction.type === 'expense' && (
-                    <Link href={`/expenses/${transaction.id}`}>
-                      <IconButton title="Edit" aria-label="Edit transaction">
-                        <Edit size={18} />
-                      </IconButton>
-                    </Link>
+                    <ActionButtonWrapper>
+                      <Link href={`/expenses/${transaction.id}`}>
+                        <EditButton aria-label="Edit transaction">
+                          <Edit size={16} />
+                        </EditButton>
+                      </Link>
+                      <ActionTooltip>Edit</ActionTooltip>
+                    </ActionButtonWrapper>
                   )}
-                  <IconButton
-                    className="danger"
-                    title="Delete"
-                    aria-label="Delete transaction"
-                    onClick={() => openDeleteModal(transaction.id, transaction.type)}
-                  >
-                    <Trash2 size={18} />
-                  </IconButton>
+                  <ActionButtonWrapper>
+                    <DeleteButton
+                      aria-label="Delete transaction"
+                      onClick={() => openDeleteModal(transaction.id, transaction.type)}
+                    >
+                      <Trash2 size={16} />
+                    </DeleteButton>
+                    <ActionTooltip>Delete</ActionTooltip>
+                  </ActionButtonWrapper>
                 </DesktopActions>
                 <MobileRowFooter>
                   <MobileDate>{formatDate(transaction.date)}</MobileDate>
                   <Actions>
                     {transaction.type === 'expense' && (
+                      <ActionButtonWrapper>
                       <Link href={`/expenses/${transaction.id}`}>
-                        <IconButton title="Edit" aria-label="Edit transaction">
-                          <Edit size={18} />
-                        </IconButton>
+                        <EditButton aria-label="Edit transaction">
+                          <Edit size={16} />
+                        </EditButton>
                       </Link>
+                      <ActionTooltip>Edit</ActionTooltip>
+                    </ActionButtonWrapper>
                     )}
-                    <IconButton
-                      className="danger"
-                      title="Delete"
+                    <ActionButtonWrapper>
+                    <DeleteButton
                       aria-label="Delete transaction"
                       onClick={() => openDeleteModal(transaction.id, transaction.type)}
                     >
-                      <Trash2 size={18} />
-                    </IconButton>
+                      <Trash2 size={16} />
+                    </DeleteButton>
+                    <ActionTooltip>Delete</ActionTooltip>
+                  </ActionButtonWrapper>
                   </Actions>
                 </MobileRowFooter>
               </TableRow>
