@@ -1,8 +1,17 @@
 "use client";
 
-import { Download, TrendingUp, Wallet, Calendar, FileBarChart } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  Download,
+  PieChart as PieChartIcon,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, useTheme } from "styled-components";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -13,112 +22,15 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { useToast } from "@/context/ToastContext";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
-// ============================================================================
-// TypeScript Interfaces
-// ============================================================================
-
-/**
- * Category spending data for pie chart and table
- */
-interface CategoryDataItem {
-  name: string;
-  value: number;
-  color: string;
-  icon: string;
-  percentage?: number;
-}
-
-/**
- * Daily spending data for bar chart
- */
-interface DailyDataItem {
-  day: string;
-  spent: number;
-  saved: number;
-}
-
-/**
- * Monthly trend data for line chart
- */
-interface MonthlyTrendItem {
-  month: string;
-  spent: number;
-  saved: number;
-}
-
-/**
- * Category entity from database
- */
-interface CategoryInfo {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-}
-
-/**
- * Expense record from database with category
- */
-interface ExpenseRecord {
-  id: string;
-  user_id: string;
-  amount: number;
-  date: string;
-  description: string;
-  payment_method: string;
-  category_id: string;
-  category?: CategoryInfo;
-  created_at?: string;
-}
-
-/**
- * Report summary statistics
- */
-interface ReportSummary {
-  totalSpent: number;
-  averageDaily: number;
-  transactionCount: number;
-  topCategory: string;
-}
-
-/**
- * Month option for filter dropdown
- */
-interface MonthOption {
-  value: string;
-  label: string;
-}
-
-/**
- * Year option for filter dropdown
- */
-interface YearOption {
-  value: string;
-  label: string;
-}
-
-/**
- * Custom tooltip props for Recharts
- */
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    value: number;
-    name: string;
-    color?: string;
-  }>;
-  label?: string;
-}
-
-// Import recharts components directly - tree shaking handles bundle optimization
+// Import recharts components
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -127,10 +39,40 @@ import {
   YAxis,
 } from "recharts";
 
-const shimmer = keyframes`
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-`;
+// ============================================================================
+// TypeScript Interfaces
+// ============================================================================
+
+interface CategoryDataItem {
+  name: string;
+  value: number;
+  color: string;
+  icon: string;
+  percentage?: number;
+}
+
+interface DailyDataItem {
+  day: string;
+  spent: number;
+  saved: number;
+}
+
+interface MonthlyTrendItem {
+  month: string;
+  spent: number;
+  saved: number;
+}
+
+interface CategoryInfo {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+// ============================================================================
+// Animations
+// ============================================================================
 
 const fadeInUp = keyframes`
   from {
@@ -143,36 +85,81 @@ const fadeInUp = keyframes`
   }
 `;
 
+const shimmer = keyframes`
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+`;
+
+const gradientMove = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`;
+
+const float = keyframes`
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
+`;
+
+const pulse = keyframes`
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+`;
+
+const glowPulse = keyframes`
+  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.5); }
+`;
+
+// ============================================================================
+// Styled Components
+// ============================================================================
+
+const PageContainer = styled.div`
+  animation: ${fadeInUp} 0.5s ease;
+`;
+
 const PageHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${({ theme }) => theme.spacing.xl};
   flex-wrap: wrap;
-  gap: ${({ theme }) => theme.spacing.md};
-  animation: ${fadeInUp} 0.5s ease;
+  gap: ${({ theme }) => theme.spacing.lg};
 
-  h1 {
-    font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
-    font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
-    background: linear-gradient(
-      135deg,
-      ${({ theme }) => theme.colors.text} 0%,
-      ${({ theme }) => theme.colors.primary} 100%
-    );
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-
-    @media (max-width: 480px) {
-      font-size: ${({ theme }) => theme.typography.fontSize.xl};
-    }
-  }
-
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
   }
+`;
+
+const PageTitleSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.xs};
+`;
+
+const PageTitle = styled.h1`
+  font-size: ${({ theme }) => theme.typography.fontSize["3xl"]};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors.text} 0%,
+    ${({ theme }) => theme.colors.primary} 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
+  }
+`;
+
+const PageSubtitle = styled.p`
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.textMuted};
 `;
 
 const FilterBar = styled.div`
@@ -180,29 +167,22 @@ const FilterBar = styled.div`
   gap: ${({ theme }) => theme.spacing.md};
   align-items: center;
   flex-wrap: wrap;
-  padding: ${({ theme }) => theme.spacing.md};
-  background: ${({ theme }) => theme.colors.surface};
-  backdrop-filter: blur(10px);
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  background: ${({ theme }) => theme.glass.background};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.xl};
-  box-shadow: ${({ theme }) => theme.shadows.sm};
+  box-shadow: ${({ theme }) => theme.shadows.md};
 
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     width: 100%;
-
-    > * {
-      flex: 1;
-      min-width: 100px;
-    }
-
-    button {
-      flex: none;
-      width: 100%;
-    }
+    justify-content: center;
   }
 
   @media (max-width: 480px) {
     flex-direction: column;
+    gap: ${({ theme }) => theme.spacing.sm};
 
     > * {
       width: 100%;
@@ -210,56 +190,210 @@ const FilterBar = styled.div`
   }
 `;
 
+// ============================================================================
+// Stats Cards Grid
+// ============================================================================
+
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: ${({ theme }) => theme.spacing.md};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  grid-template-columns: repeat(4, 1fr);
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
 
-  @media (max-width: 480px) {
+  @media (max-width: 1200px) {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (max-width: 380px) {
+  @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const StatCard = styled.div`
-  background: ${({ theme }) => theme.colors.surface};
+const StatCardWrapper = styled.div<{ $color: string; $delay: number }>`
+  background: ${({ theme }) => theme.glass.background};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.lg};
-  padding: ${({ theme }) => theme.spacing.lg};
+  border-radius: ${({ theme }) => theme.borderRadius.xl};
+  padding: ${({ theme }) => theme.spacing.xl};
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: ${fadeInUp} 0.5s ease forwards;
+  animation-delay: ${({ $delay }) => $delay}ms;
+  opacity: 0;
 
-  h3 {
-    font-size: ${({ theme }) => theme.typography.fontSize.sm};
-    color: ${({ theme }) => theme.colors.textSecondary};
-    margin-bottom: ${({ theme }) => theme.spacing.xs};
+  /* Top gradient border */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      ${({ $color }) => $color}00 0%,
+      ${({ $color }) => $color} 50%,
+      ${({ $color }) => $color}00 100%
+    );
+    background-size: 200% 100%;
+    animation: ${gradientMove} 3s ease infinite;
   }
 
-  p {
-    font-size: ${({ theme }) => theme.typography.fontSize["2xl"]};
-    font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
-    color: ${({ theme }) => theme.colors.text};
+  /* Glow effect */
+  &::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle at center,
+      ${({ $color }) => $color}10 0%,
+      transparent 50%
+    );
+    pointer-events: none;
+    transition: all 0.5s ease;
+    opacity: 0;
   }
 
-  span {
-    font-size: ${({ theme }) => theme.typography.fontSize.sm};
-    color: ${({ theme }) => theme.colors.textSecondary};
+  &:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow:
+      ${({ theme }) => theme.shadows.xl},
+      0 8px 32px ${({ $color }) => $color}25;
+    border-color: ${({ $color }) => $color}40;
+
+    &::after {
+      opacity: 1;
+    }
   }
 
-  @media (max-width: 480px) {
-    padding: ${({ theme }) => theme.spacing.md};
-
-    p {
-      font-size: ${({ theme }) => theme.typography.fontSize.xl};
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    &:hover {
+      transform: none;
+    }
+    &::before {
+      animation: none;
     }
   }
 `;
 
+const StatContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+`;
+
+const StatInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.sm};
+`;
+
+const StatLabel = styled.span`
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+  color: ${({ theme }) => theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+`;
+
+const StatValue = styled.span`
+  font-size: 2rem;
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  color: ${({ theme }) => theme.colors.text};
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  background: linear-gradient(
+    180deg,
+    ${({ theme }) => theme.colors.text} 0%,
+    ${({ theme }) => theme.colors.textSecondary} 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  @media (max-width: 768px) {
+    font-size: 1.75rem;
+  }
+`;
+
+const StatSubtext = styled.span`
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.textMuted};
+`;
+
+const StatIconWrapper = styled.div<{ $color: string }>`
+  width: 56px;
+  height: 56px;
+  border-radius: ${({ theme }) => theme.borderRadius.xl};
+  background: linear-gradient(
+    135deg,
+    ${({ $color }) => $color}25 0%,
+    ${({ $color }) => $color}10 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ $color }) => $color};
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 4px 16px ${({ $color }) => $color}20;
+  flex-shrink: 0;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      ${({ $color }) => $color} 0%,
+      ${({ $color }) => $color}cc 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  svg {
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+
+  ${StatCardWrapper}:hover & {
+    transform: scale(1.1) rotate(5deg);
+
+    &::after {
+      opacity: 1;
+    }
+
+    svg {
+      color: white;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    ${StatCardWrapper}:hover & {
+      transform: scale(1.05);
+    }
+  }
+`;
+
+// ============================================================================
+// Charts Section
+// ============================================================================
+
 const ChartsGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: ${({ theme }) => theme.spacing.lg};
   margin-bottom: ${({ theme }) => theme.spacing.lg};
 
@@ -268,76 +402,563 @@ const ChartsGrid = styled.div`
   }
 `;
 
-const ChartContainer = styled.div`
-  height: 300px;
+const ChartCard = styled(Card)<{ $accentColor?: string }>`
+  animation: ${fadeInUp} 0.5s ease forwards;
+  animation-delay: 300ms;
+  opacity: 0;
+  overflow: hidden;
+  position: relative;
+  background: ${({ theme }) =>
+    `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.surfaceHover}40 100%)`};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 
-  @media (max-width: 480px) {
-    height: 250px;
+  /* Premium gradient overlay */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: ${({ theme, $accentColor }) =>
+      `linear-gradient(180deg, ${$accentColor || theme.colors.primary}08 0%, transparent 100%)`};
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Inner glow line at top */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: ${({ theme, $accentColor }) =>
+      `linear-gradient(90deg, transparent, ${$accentColor || theme.colors.primary}40, transparent)`};
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      ${({ theme }) => theme.shadows.xl},
+      0 8px 32px ${({ theme }) => theme.colors.primary}15;
+    border-color: ${({ theme }) => theme.colors.primary}30;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    &:hover {
+      transform: none;
+    }
   }
 `;
 
-const FullWidthChart = styled(Card)`
+const ChartContainer = styled.div`
+  height: 320px;
+  padding: ${({ theme }) => theme.spacing.md};
+
+  @media (max-width: 480px) {
+    height: 280px;
+    padding: ${({ theme }) => theme.spacing.sm};
+  }
+
+  /* Pie chart label text color */
+  .recharts-pie-label-text {
+    fill: ${({ theme }) => theme.colors.text} !important;
+    font-weight: 600;
+  }
+
+  /* Legend text styling */
+  .recharts-legend-item-text {
+    color: ${({ theme }) => theme.colors.text} !important;
+    font-weight: 600 !important;
+  }
+
+  /* Grid lines */
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    stroke: ${({ theme }) => theme.colors.border};
+    opacity: 0.4;
+  }
+
+  /* Axis tick text */
+  .recharts-cartesian-axis-tick-value {
+    fill: ${({ theme }) => theme.colors.textMuted};
+    font-weight: 500;
+  }
+
+  /* Active dot glow effect */
+  .recharts-active-dot {
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+`;
+
+const FullWidthChartCard = styled(ChartCard)`
+  grid-column: 1 / -1;
+`;
+
+const DailyChartCard = styled(Card)`
   margin-bottom: ${({ theme }) => theme.spacing.lg};
+  animation: ${fadeInUp} 0.5s ease forwards;
+  animation-delay: 400ms;
+  opacity: 0;
+  overflow: hidden;
+  position: relative;
+  background: ${({ theme }) =>
+    `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.surfaceHover}40 100%)`};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Premium gradient overlay - orange/amber accent for daily activity */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(
+      180deg,
+      rgba(245, 158, 11, 0.06) 0%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Inner glow line at top */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(245, 158, 11, 0.4),
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      ${({ theme }) => theme.shadows.xl},
+      0 8px 32px rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    &:hover {
+      transform: none;
+    }
+  }
+`;
+
+// ============================================================================
+// Category Breakdown Table
+// ============================================================================
+
+const TableCard = styled(Card)`
+  animation: ${fadeInUp} 0.5s ease forwards;
+  animation-delay: 500ms;
+  opacity: 0;
+  overflow: hidden;
+  position: relative;
+  background: ${({ theme }) =>
+    `linear-gradient(145deg, ${theme.colors.surface} 0%, ${theme.colors.surfaceHover}30 100%)`};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Premium gradient overlay - purple accent for breakdown */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(
+      180deg,
+      rgba(139, 92, 246, 0.05) 0%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Inner glow line at top */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(139, 92, 246, 0.35),
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      ${({ theme }) => theme.shadows.xl},
+      0 8px 32px rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.25);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    &:hover {
+      transform: none;
+    }
+  }
 `;
 
 const TableContainer = styled.div`
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: ${({ theme }) => theme.colors.surfaceHover};
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.colors.border};
+    border-radius: 3px;
+  }
 `;
 
-const Table = styled.table`
+const StyledTable = styled.table`
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px;
+`;
 
-  th,
-  td {
-    padding: ${({ theme }) => theme.spacing.md};
-    text-align: left;
-    border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+const TableHead = styled.thead`
+  background: ${({ theme }) => theme.colors.surfaceHover}50;
+`;
+
+const TableHeaderCell = styled.th`
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  text-align: left;
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+  color: ${({ theme }) => theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  white-space: nowrap;
+`;
+
+const TableRow = styled.tr`
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.colors.surfaceHover}50;
   }
 
-  th {
-    font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
-    color: ${({ theme }) => theme.colors.textSecondary};
-    font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  &:not(:last-child) td {
+    border-bottom: 1px solid ${({ theme }) => theme.colors.border}60;
   }
+`;
 
-  td {
-    color: ${({ theme }) => theme.colors.text};
-  }
+const TableCell = styled.td`
+  padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  color: ${({ theme }) => theme.colors.text};
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  vertical-align: middle;
 `;
 
 const CategoryCell = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
+  gap: ${({ theme }) => theme.spacing.md};
 `;
 
-const CategoryIcon = styled.span<{ $color: string }>`
-  width: 32px;
-  height: 32px;
-  border-radius: ${({ theme }) => theme.borderRadius.md};
+const CategoryIconBadge = styled.div<{ $color: string }>`
+  width: 40px;
+  height: 40px;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
   background: ${({ $color }) => `${$color}15`};
+  border: 1px solid ${({ $color }) => `${$color}30`};
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.25rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  ${TableRow}:hover & {
+    transform: scale(1.1);
+    background: ${({ $color }) => `${$color}25`};
+  }
 `;
 
-const PercentageBar = styled.div<{ $percentage: number; $color: string }>`
+const CategoryName = styled.span`
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+const AmountCell = styled.span`
+  font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+  font-feature-settings: "tnum";
+  color: ${({ theme }) => theme.colors.text};
+`;
+
+const PercentageCell = styled.span<{ $value: number }>`
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  color: ${({ theme, $value }) =>
+    $value >= 30
+      ? theme.colors.error
+      : $value >= 15
+        ? theme.colors.warning
+        : theme.colors.success};
+  font-feature-settings: "tnum";
+`;
+
+const ProgressBarContainer = styled.div`
+  width: 100%;
+  min-width: 120px;
+  max-width: 200px;
+`;
+
+const ProgressBarTrack = styled.div`
   height: 8px;
   background: ${({ theme }) => theme.colors.surfaceHover};
   border-radius: ${({ theme }) => theme.borderRadius.full};
   overflow: hidden;
-  min-width: 100px;
+  position: relative;
+`;
+
+const ProgressBarFill = styled.div<{ $percentage: number; $color: string }>`
+  height: 100%;
+  width: ${({ $percentage }) => Math.min($percentage, 100)}%;
+  background: linear-gradient(
+    90deg,
+    ${({ $color }) => $color} 0%,
+    ${({ $color }) => $color}cc 100%
+  );
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  transition: width 0.5s ease;
+  position: relative;
 
   &::after {
     content: "";
-    display: block;
-    height: 100%;
-    width: ${({ $percentage }) => Math.min($percentage, 100)}%;
-    background: ${({ $color }) => $color};
-    border-radius: ${({ theme }) => theme.borderRadius.full};
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+    animation: ${shimmer} 2s infinite;
   }
 `;
+
+// ============================================================================
+// Empty State
+// ============================================================================
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: ${({ theme }) => theme.spacing["2xl"]};
+  text-align: center;
+  color: ${({ theme }) => theme.colors.textMuted};
+  gap: ${({ theme }) => theme.spacing.md};
+
+  svg {
+    opacity: 0.5;
+  }
+`;
+
+// ============================================================================
+// Chart Tooltip & Legend Styled Components
+// ============================================================================
+
+const TooltipContainer = styled.div`
+  background: ${({ theme }) => theme.colors.surface};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: ${({ theme }) => theme.shadows.xl};
+  min-width: 160px;
+`;
+
+const TooltipLabel = styled.p`
+  color: ${({ theme }) => theme.colors.text};
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
+  letter-spacing: -0.01em;
+`;
+
+const TooltipRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0;
+`;
+
+const TooltipDotWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const TooltipDot = styled.div<{ $color: string }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  box-shadow: 0 0 8px ${({ $color }) => `${$color}60`};
+`;
+
+const TooltipName = styled.span`
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: 13px;
+  font-weight: 500;
+`;
+
+const TooltipValue = styled.span`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 14px;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+`;
+
+const LegendContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding-top: 16px;
+  flex-wrap: wrap;
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: ${({ theme }) => theme.colors.surfaceHover};
+  border-radius: 20px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const LegendDot = styled.div<{ $color: string }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  box-shadow: 0 0 8px ${({ $color }) => `${$color}50`};
+`;
+
+const LegendText = styled.span`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 13px;
+  font-weight: 600;
+`;
+
+const PieTooltipContainer = styled.div`
+  background: ${({ theme }) => theme.colors.surface};
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: ${({ theme }) => theme.shadows.xl};
+  min-width: 140px;
+`;
+
+const PieTooltipHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+`;
+
+const PieTooltipDot = styled.div<{ $color: string }>`
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: ${({ $color }) => $color};
+  box-shadow: 0 0 10px ${({ $color }) => `${$color}60`};
+`;
+
+const PieTooltipTitle = styled.span`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+`;
+
+const PieTooltipBody = styled.div`
+  padding-top: 8px;
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+`;
+
+const PieTooltipRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+`;
+
+const PieTooltipLabel = styled.span`
+  color: ${({ theme }) => theme.colors.textMuted};
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+const PieTooltipValue = styled.span`
+  color: ${({ theme }) => theme.colors.text};
+  font-size: 15px;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+`;
+
+const PieLabelText = styled.text`
+  fill: ${({ theme }) => theme.colors.text};
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+`;
+
+// ============================================================================
+// Constants
+// ============================================================================
 
 const COLORS = [
   "#6366f1",
@@ -366,10 +987,15 @@ const MONTHS = [
   { value: "12", label: "December" },
 ];
 
+// ============================================================================
+// Main Component
+// ============================================================================
+
 export default function ReportsPage() {
   const { user } = useAuth();
   const { currency, formatCurrency } = useCurrency();
   const toast = useToast();
+  const theme = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(
     (new Date().getMonth() + 1).toString(),
@@ -394,6 +1020,17 @@ export default function ReportsPage() {
     return { value: year.toString(), label: year.toString() };
   });
 
+  // Theme-aware chart colors
+  const chartColors = {
+    grid: theme.colors.border,
+    axis: theme.colors.textMuted,
+    spent: "#ef4444",
+    saved: "#10b981",
+    tooltipBg: theme.glass.backgroundStrong,
+    tooltipBorder: theme.colors.border,
+    text: theme.colors.text,
+  };
+
   const fetchReportData = useCallback(async () => {
     if (!user) return;
 
@@ -401,10 +1038,9 @@ export default function ReportsPage() {
     const supabase = getSupabaseClient();
 
     try {
-      // Build date range
       let startDate: string | null = null;
       let endDate: string | null = null;
-      let daysInPeriod = 30; // Default for average calculation
+      let daysInPeriod = 30;
 
       if (selectedMonth !== "all") {
         const month = parseInt(selectedMonth);
@@ -414,7 +1050,6 @@ export default function ReportsPage() {
         daysInPeriod = new Date(year, month, 0).getDate();
       }
 
-      // Build expense query
       let expenseQuery = supabase
         .from("expenses")
         .select("*, category:categories(id, name, icon, color)")
@@ -425,7 +1060,6 @@ export default function ReportsPage() {
         expenseQuery = expenseQuery.gte("date", startDate).lte("date", endDate);
       }
 
-      // Build contributions query
       let contributionsQuery = supabase
         .from("goal_contributions")
         .select("*, goal:goals(id, name, icon, color)")
@@ -438,7 +1072,6 @@ export default function ReportsPage() {
           .lte("date", endDate);
       }
 
-      // Fetch both expenses and contributions
       const [expensesResult, contributionsResult] = await Promise.all([
         expenseQuery,
         contributionsQuery,
@@ -447,7 +1080,6 @@ export default function ReportsPage() {
       const expenses = expensesResult.data;
       const contributions = contributionsResult.data;
 
-      // Define types
       type ExpenseData = {
         amount: number;
         date: string;
@@ -461,7 +1093,6 @@ export default function ReportsPage() {
         goal?: { id: string; name: string; icon: string; color: string };
       };
 
-      // Calculate stats
       const totalSpent =
         expenses?.reduce((sum: number, e: ExpenseData) => sum + e.amount, 0) ||
         0;
@@ -471,7 +1102,6 @@ export default function ReportsPage() {
           0,
         ) || 0;
 
-      // For all time, calculate days since first transaction
       if (selectedMonth === "all" && expenses && expenses.length > 0) {
         const firstDate = new Date(expenses[0].date);
         const today = new Date();
@@ -485,7 +1115,6 @@ export default function ReportsPage() {
 
       const avgPerDay = totalSpent / daysInPeriod;
 
-      // Category breakdown for expenses
       const categoryTotals: Record<
         string,
         { name: string; value: number; color: string; icon: string }
@@ -530,7 +1159,6 @@ export default function ReportsPage() {
         })),
       );
 
-      // Daily spending data (only for specific month, not all time)
       if (selectedMonth !== "all") {
         const month = parseInt(selectedMonth);
         const year = parseInt(selectedYear);
@@ -559,7 +1187,6 @@ export default function ReportsPage() {
         setDailyData([]);
       }
 
-      // Monthly trend (last 6 months from selected or current month)
       const trendData = [];
       const baseMonth =
         selectedMonth === "all"
@@ -683,14 +1310,108 @@ export default function ReportsPage() {
     toast.success("Report exported successfully!");
   };
 
+  // Custom tooltip component for better styling - Premium dark/light mode support
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <TooltipContainer>
+          <TooltipLabel>{label}</TooltipLabel>
+          {payload.map((entry: any, index: number) => (
+            <TooltipRow key={index}>
+              <TooltipDotWrapper>
+                <TooltipDot $color={entry.color} />
+                <TooltipName>{entry.name}</TooltipName>
+              </TooltipDotWrapper>
+              <TooltipValue>{formatCurrency(entry.value)}</TooltipValue>
+            </TooltipRow>
+          ))}
+        </TooltipContainer>
+      );
+    }
+    return null;
+  };
+
+  // Custom pie chart label with theme-aware colors
+  const renderPieLabel = ({
+    cx,
+    cy,
+    midAngle,
+    outerRadius,
+    percent,
+    name,
+  }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius * 1.35;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <PieLabelText
+        x={x}
+        y={y}
+        textAnchor={x > cx ? "start" : "end"}
+        dominantBaseline="central"
+      >
+        {`${name} ${(percent * 100).toFixed(0)}%`}
+      </PieLabelText>
+    );
+  };
+
+  // Custom legend with theme-aware styling
+  const renderLegend = (props: any) => {
+    const { payload } = props;
+    return (
+      <LegendContainer>
+        {payload.map((entry: any, index: number) => (
+          <LegendItem key={index}>
+            <LegendDot $color={entry.color} />
+            <LegendText>{entry.value}</LegendText>
+          </LegendItem>
+        ))}
+      </LegendContainer>
+    );
+  };
+
+  // Custom pie chart tooltip
+  const PieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <PieTooltipContainer>
+          <PieTooltipHeader>
+            <PieTooltipDot $color={data.payload.color} />
+            <PieTooltipTitle>{data.name}</PieTooltipTitle>
+          </PieTooltipHeader>
+          <PieTooltipBody>
+            <PieTooltipRow>
+              <PieTooltipLabel>Amount</PieTooltipLabel>
+              <PieTooltipValue>{formatCurrency(data.value)}</PieTooltipValue>
+            </PieTooltipRow>
+          </PieTooltipBody>
+        </PieTooltipContainer>
+      );
+    }
+    return null;
+  };
+
   if (isLoading) {
     return <Loader fullScreen text="Loading reports..." />;
   }
 
+  const periodLabel =
+    selectedMonth === "all"
+      ? "All Time"
+      : `${MONTHS.find((m) => m.value === selectedMonth)?.label} ${selectedYear}`;
+
   return (
-    <>
+    <PageContainer>
       <PageHeader>
-        <h1>Reports</h1>
+        <PageTitleSection>
+          <PageTitle>Reports</PageTitle>
+          <PageSubtitle>
+            Detailed analysis of your financial activity
+          </PageSubtitle>
+        </PageTitleSection>
         <FilterBar>
           <Select
             options={MONTHS}
@@ -708,187 +1429,353 @@ export default function ReportsPage() {
         </FilterBar>
       </PageHeader>
 
+      {/* Stats Cards */}
       <StatsGrid>
-        <StatCard>
-          <h3>Total Spent</h3>
-          <p>{formatCurrency(stats.totalSpent)}</p>
-          <span>
-            {selectedMonth === "all"
-              ? "All Time"
-              : `${MONTHS.find((m) => m.value === selectedMonth)?.label} ${selectedYear}`}
-          </span>
-        </StatCard>
-        <StatCard>
-          <h3>Total Saved</h3>
-          <p>{formatCurrency(stats.totalSaved)}</p>
-          <span>Goal contributions</span>
-        </StatCard>
-        <StatCard>
-          <h3>Daily Average</h3>
-          <p>{formatCurrency(stats.avgPerDay)}</p>
-          <span>Spending per day</span>
-        </StatCard>
-        <StatCard>
-          <h3>Transactions</h3>
-          <p>{stats.transactions}</p>
-          <span>Expenses + Savings</span>
-        </StatCard>
+        <StatCardWrapper $color="#6366f1" $delay={0}>
+          <StatContent>
+            <StatInfo>
+              <StatLabel>Total Spent</StatLabel>
+              <StatValue>{formatCurrency(stats.totalSpent)}</StatValue>
+              <StatSubtext>{periodLabel}</StatSubtext>
+            </StatInfo>
+            <StatIconWrapper $color="#6366f1">
+              <Wallet size={24} />
+            </StatIconWrapper>
+          </StatContent>
+        </StatCardWrapper>
+
+        <StatCardWrapper $color="#10b981" $delay={50}>
+          <StatContent>
+            <StatInfo>
+              <StatLabel>Total Saved</StatLabel>
+              <StatValue>{formatCurrency(stats.totalSaved)}</StatValue>
+              <StatSubtext>Goal contributions</StatSubtext>
+            </StatInfo>
+            <StatIconWrapper $color="#10b981">
+              <Target size={24} />
+            </StatIconWrapper>
+          </StatContent>
+        </StatCardWrapper>
+
+        <StatCardWrapper $color="#f59e0b" $delay={100}>
+          <StatContent>
+            <StatInfo>
+              <StatLabel>Daily Average</StatLabel>
+              <StatValue>{formatCurrency(stats.avgPerDay)}</StatValue>
+              <StatSubtext>Spending per day</StatSubtext>
+            </StatInfo>
+            <StatIconWrapper $color="#f59e0b">
+              <TrendingUp size={24} />
+            </StatIconWrapper>
+          </StatContent>
+        </StatCardWrapper>
+
+        <StatCardWrapper $color="#8b5cf6" $delay={150}>
+          <StatContent>
+            <StatInfo>
+              <StatLabel>Transactions</StatLabel>
+              <StatValue>{stats.transactions}</StatValue>
+              <StatSubtext>Expenses + Savings</StatSubtext>
+            </StatInfo>
+            <StatIconWrapper $color="#8b5cf6">
+              <Activity size={24} />
+            </StatIconWrapper>
+          </StatContent>
+        </StatCardWrapper>
       </StatsGrid>
 
+      {/* Charts Grid */}
       <ChartsGrid>
-        <Card>
-          <CardHeader title="Spending by Category" />
+        <ChartCard $accentColor="#ec4899">
+          <CardHeader
+            title="Spending by Category"
+            subtitle="Distribution of your expenses"
+            icon={<PieChartIcon size={20} />}
+          />
           <CardBody>
             <ChartContainer>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                    nameKey="name"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={100}
+                      paddingAngle={3}
+                      dataKey="value"
+                      nameKey="name"
+                      label={renderPieLabel}
+                      labelLine={{
+                        stroke: theme.colors.textMuted,
+                        strokeWidth: 1,
+                        strokeOpacity: 0.5,
+                      }}
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                          stroke={theme.colors.surface}
+                          strokeWidth={3}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<PieTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState>
+                  <PieChartIcon size={48} />
+                  <span>No spending data for this period</span>
+                </EmptyState>
+              )}
             </ChartContainer>
           </CardBody>
-        </Card>
+        </ChartCard>
 
-        <Card>
-          <CardHeader title="6-Month Trend" />
+        <ChartCard $accentColor="#10b981">
+          <CardHeader
+            title="6-Month Trend"
+            subtitle="Spending vs Savings over time"
+            icon={<TrendingUp size={20} />}
+          />
           <CardBody>
             <ChartContainer>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" stroke="#9ca3af" />
+                <AreaChart data={monthlyTrend}>
+                  <defs>
+                    <linearGradient
+                      id="spentGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient
+                      id="savedGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={chartColors.grid}
+                    opacity={0.5}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 12 }}
+                    axisLine={{ stroke: chartColors.grid }}
+                  />
                   <YAxis
-                    stroke="#9ca3af"
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 12 }}
                     tickFormatter={(value) => `${currency.symbol}${value}`}
+                    axisLine={{ stroke: chartColors.grid }}
                   />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Legend />
-                  <Line
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend content={renderLegend} />
+                  <Area
                     type="monotone"
                     dataKey="spent"
                     name="Spent"
                     stroke="#ef4444"
                     strokeWidth={3}
-                    dot={{ fill: "#ef4444", strokeWidth: 2 }}
+                    fill="url(#spentGradient)"
+                    dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                    activeDot={{
+                      r: 8,
+                      stroke: theme.colors.surface,
+                      strokeWidth: 3,
+                      fill: "#ef4444",
+                    }}
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="saved"
                     name="Saved"
                     stroke="#10b981"
                     strokeWidth={3}
-                    dot={{ fill: "#10b981", strokeWidth: 2 }}
+                    fill="url(#savedGradient)"
+                    dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
+                    activeDot={{
+                      r: 8,
+                      stroke: theme.colors.surface,
+                      strokeWidth: 3,
+                      fill: "#10b981",
+                    }}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardBody>
-        </Card>
+        </ChartCard>
       </ChartsGrid>
 
+      {/* Daily Activity Chart */}
       {selectedMonth !== "all" && dailyData.length > 0 && (
-        <FullWidthChart>
-          <CardHeader title="Daily Activity" />
+        <DailyChartCard>
+          <CardHeader
+            title="Daily Activity"
+            subtitle={`Day-by-day breakdown for ${periodLabel}`}
+            icon={<BarChart3 size={20} />}
+          />
           <CardBody>
             <ChartContainer>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="day" stroke="#9ca3af" />
+                <BarChart data={dailyData} barGap={2}>
+                  <defs>
+                    <linearGradient
+                      id="spentBarGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
+                      <stop
+                        offset="100%"
+                        stopColor="#ef4444"
+                        stopOpacity={0.7}
+                      />
+                    </linearGradient>
+                    <linearGradient
+                      id="savedBarGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                      <stop
+                        offset="100%"
+                        stopColor="#10b981"
+                        stopOpacity={0.7}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={chartColors.grid}
+                    opacity={0.5}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="day"
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 11 }}
+                    axisLine={{ stroke: chartColors.grid }}
+                    interval={window.innerWidth < 768 ? 4 : 1}
+                  />
                   <YAxis
-                    stroke="#9ca3af"
+                    stroke={chartColors.axis}
+                    tick={{ fill: chartColors.axis, fontSize: 12 }}
                     tickFormatter={(value) => `${currency.symbol}${value}`}
+                    axisLine={{ stroke: chartColors.grid }}
                   />
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Legend />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend content={renderLegend} />
                   <Bar
                     dataKey="spent"
                     name="Spent"
-                    fill="#ef4444"
-                    radius={[4, 4, 0, 0]}
+                    fill="url(#spentBarGradient)"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={24}
                   />
                   <Bar
                     dataKey="saved"
                     name="Saved"
-                    fill="#10b981"
-                    radius={[4, 4, 0, 0]}
+                    fill="url(#savedBarGradient)"
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={24}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardBody>
-        </FullWidthChart>
+        </DailyChartCard>
       )}
 
-      <Card>
-        <CardHeader title="Category Breakdown" />
+      {/* Category Breakdown Table */}
+      <TableCard>
+        <CardHeader
+          title="Category Breakdown"
+          subtitle="Detailed spending by category"
+          icon={<Sparkles size={20} />}
+        />
         <CardBody>
-          <TableContainer>
-            <Table>
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Amount</th>
-                  <th>% of Total</th>
-                  <th>Distribution</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryData.map((category) => {
-                  const percentage =
-                    stats.totalSpent > 0
-                      ? (category.value / stats.totalSpent) * 100
-                      : 0;
-                  return (
-                    <tr key={category.name}>
-                      <td>
-                        <CategoryCell>
-                          <CategoryIcon $color={category.color}>
-                            {category.icon}
-                          </CategoryIcon>
-                          {category.name}
-                        </CategoryCell>
-                      </td>
-                      <td>{formatCurrency(category.value)}</td>
-                      <td>{percentage.toFixed(1)}%</td>
-                      <td>
-                        <PercentageBar
-                          $percentage={percentage}
-                          $color={category.color}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </Table>
-          </TableContainer>
+          {categoryData.length > 0 ? (
+            <TableContainer>
+              <StyledTable>
+                <TableHead>
+                  <tr>
+                    <TableHeaderCell>Category</TableHeaderCell>
+                    <TableHeaderCell>Amount</TableHeaderCell>
+                    <TableHeaderCell>% of Total</TableHeaderCell>
+                    <TableHeaderCell>Distribution</TableHeaderCell>
+                  </tr>
+                </TableHead>
+                <tbody>
+                  {categoryData.map((category) => {
+                    const percentage =
+                      stats.totalSpent > 0
+                        ? (category.value / stats.totalSpent) * 100
+                        : 0;
+                    return (
+                      <TableRow key={category.name}>
+                        <TableCell>
+                          <CategoryCell>
+                            <CategoryIconBadge $color={category.color}>
+                              {category.icon}
+                            </CategoryIconBadge>
+                            <CategoryName>{category.name}</CategoryName>
+                          </CategoryCell>
+                        </TableCell>
+                        <TableCell>
+                          <AmountCell>
+                            {formatCurrency(category.value)}
+                          </AmountCell>
+                        </TableCell>
+                        <TableCell>
+                          <PercentageCell $value={percentage}>
+                            {percentage.toFixed(1)}%
+                          </PercentageCell>
+                        </TableCell>
+                        <TableCell>
+                          <ProgressBarContainer>
+                            <ProgressBarTrack>
+                              <ProgressBarFill
+                                $percentage={percentage}
+                                $color={category.color}
+                              />
+                            </ProgressBarTrack>
+                          </ProgressBarContainer>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </tbody>
+              </StyledTable>
+            </TableContainer>
+          ) : (
+            <EmptyState>
+              <BarChart3 size={48} />
+              <span>No category data available for this period</span>
+            </EmptyState>
+          )}
         </CardBody>
-      </Card>
-    </>
+      </TableCard>
+    </PageContainer>
   );
 }
