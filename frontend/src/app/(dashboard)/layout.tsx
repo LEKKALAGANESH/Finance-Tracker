@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -7,9 +8,14 @@ import { Header } from '@/components/layout/Header';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { BottomNavBar, BottomNavSpacer } from '@/components/ui/BottomNavBar';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
-import { OnboardingFlow } from '@/components/onboarding';
 import { NavigationProvider } from '@/context/NavigationContext';
 import { PageTransitionLoader } from '@/components/ui/PageTransitionLoader';
+
+// Lazy load OnboardingFlow - only needed for new users
+const OnboardingFlow = dynamic(
+  () => import('@/components/onboarding').then((mod) => mod.OnboardingFlow),
+  { ssr: false }
+);
 
 const LayoutContainer = styled.div`
   min-height: 100vh;

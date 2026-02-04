@@ -1,3 +1,7 @@
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   compiler: {
@@ -14,7 +18,14 @@ const nextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
+    // Optimize imports for heavy packages
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      'date-fns',
+      'react-datepicker',
+      '@supabase/supabase-js',
+    ],
   },
   modularizeImports: {
     'lucide-react': {
@@ -23,4 +34,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);

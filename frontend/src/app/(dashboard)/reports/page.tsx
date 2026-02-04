@@ -22,7 +22,7 @@ import { usePageLoading } from "@/context/NavigationContext";
 import { useToast } from "@/context/ToastContext";
 import { getSupabaseClient } from "@/lib/supabase/client";
 
-// Import recharts components
+// Import specific recharts components (tree-shaking friendly)
 import {
   Area,
   AreaChart,
